@@ -33,7 +33,10 @@ jobs:
           mkdir -p generated/schema-org
           mkdir -p generated/markdown
           mkdir -p generated/json
-      
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+        
       - name: Export recipes to all formats
         run: |
           for recipe in recipes/*.cook; do
@@ -43,19 +46,20 @@ jobs:
               
               # Try schema format first, fallback to json if not available
               if cook recipe "$recipe" -f schema --help 2>&1 | grep -q "schema"; then
-                cook recipe "$recipe" -f schema -o "generated/schema-org/${filename}.json"
+                cook recipe "$recipe" -f schema | jq '.' > "generated/schema-org/${filename}.json"
               else
                 echo "  ⚠️  Schema format not available, using JSON"
-                cook recipe "$recipe" -f json -o "generated/schema-org/${filename}.json"
+                cook recipe "$recipe" -f json | jq '.' > "generated/schema-org/${filename}.json"
               fi
               
               # Markdown (for browsing/static site)
-              cook recipe "$recipe" -f markdown -o "generated/markdown/${filename}.md"
+              cook recipe "$recipe" -f markdown > "generated/markdown/${filename}.md"
               
-              # JSON (for programmatic access)
-              cook recipe "$recipe" -f json -o "generated/json/${filename}.json"
+              # JSON (for programmatic access, pretty-printed)
+              cook recipe "$recipe" -f json | jq '.' > "generated/json/${filename}.json"
             fi
           done
+
 
       - name: Generate index files
         run: |
