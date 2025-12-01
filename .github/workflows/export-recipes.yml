@@ -61,7 +61,6 @@ jobs:
         run: |
           recipe_count=$(ls recipes/*.cook 2>/dev/null | wc -l)
           
-          # Markdown index
           echo "# Recipe Collection" > generated/markdown/INDEX.md
           echo "" >> generated/markdown/INDEX.md
           echo "📚 Total recipes: **${recipe_count}**" >> generated/markdown/INDEX.md
@@ -72,12 +71,18 @@ jobs:
           for recipe in recipes/*.cook; do
             if [ -f "$recipe" ]; then
               filename=$(basename "$recipe" .cook)
-              title=$(head -n1 "$recipe" | sed 's/>>//g' | xargs)
+              # Extract title from YAML frontmatter
+              title=$(grep -m 1 "^title:" "$recipe" | sed 's/title: *//g' | xargs)
+              if [ -z "$title" ]; then
+                # Fallback to filename if no title found
+                title=$(echo "$filename" | sed 's/^[0-9-]*-//g' | sed 's/-/ /g')
+              fi
               echo "- [$title](./${filename}.md)" >> generated/markdown/INDEX.md
             fi
           done
           
           echo "✅ Generated index files"
+
 
       - name: Commit generated files
         run: |
