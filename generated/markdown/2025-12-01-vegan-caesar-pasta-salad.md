@@ -1,56 +1,60 @@
 ---
 title: Vegan Caesar Pasta Salad
-servings: 4
+servings: 2
 prep_time: 15 minutes
 cook_time: 25 minutes
 tags:
 - vegan
 - pasta
 - salad
+- healthy
 source: healthygirlkitchen
-image: vegan-caesar-pasta-salad.jpg
+image: null
 name: Vegan Caesar Pasta Salad
 ---
 
 # Vegan Caesar Pasta Salad
 
-#vegan #pasta #salad
+#vegan #pasta #salad #healthy
 
 ## Ingredients
 
-- *2 cups* chickpeas
-- *1 tsp* smoked paprika
-- *3 tbsp* olive oil
-- *12 oz* pasta
-- *4 cups* kale
-- *12 oz* pasta
-- *0.5 cup* vegan parmesan cheese
-- *1 cup* raw cashews
-- *3 tbsp* olive oil
+- *1 cup* chickpeas
+- *0.5 tsp* salt
+- *0.5 tsp* smoked paprika
+- *1 tbsp* olive oil
+- *4 oz* pasta
+- *1 cup* cashews
 - *2 tbsp* lemon juice
 - *1 tbsp* capers
-- *1 tsp* caper brine
+- *1 tbsp* caper brine
 - *2 tsp* dijon mustard
-- *0.5 tsp* salt
 - *0.75 cup* water
 - *1 tsp* garlic powder
-- *0.125 tsp* pepper
+- *0.25 tsp* pepper
+- *2 cups* kale
+- *0.25 cup* vegan parmesan cheese
 
 ## Cookware
 
 - oven
-- baking sheet
-- large pot
+- sheet pan
 - large bowl
 
 ## Steps
 
-1. Preheat your oven to 400°F. On a baking sheet, toss chickpeas with smoked
-paprika and olive oil until coated, then roast for 15 minutes. Meanwhile, bring
-a large pot of salted water to a boil and cook pasta until al dente, about 10
-minutes, then drain. In a large bowl, toss kale with pasta and vegan parmesan
-cheese. Add the roasted chickpeas and mix to combine. For the dressing, in a
-blender, blend raw cashews, olive oil, lemon juice, capers, caper brine, dijon
-mustard, salt, water, garlic powder, and pepper until smooth. Pour dressing over
-the salad and toss to coat; serve immediately or refrigerate for up to 1 day.
+1. Preheat your oven to 400°F. On a sheet pan, toss chickpeas with salt, smoked
+paprika, and olive oil. Roast in the oven for 15 minutes until crisp.
+
+2. Meanwhile, cook pasta in salted water until al dente, then drain.
+
+3. In a blender, blend all dressing ingredients until smooth: cashews, olive
+oil, lemon juice, capers, caper brine, dijon mustard, salt, water, garlic
+powder, and pepper until smooth.
+
+4. In a large bowl, toss kale, pasta, roasted chickpeas, and vegan parmesan
+cheese until evenly combined. Drizzle the dressing over and toss until the salad
+is well coated.
+
+5. Taste and adjust salt/pepper if needed, and serve immediately.
 
