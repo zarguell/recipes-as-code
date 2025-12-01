@@ -1,0 +1,113 @@
+name: Export Recipes
+
+on:
+  push:
+    paths:
+      - 'recipes/**/*.cook'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper commits
+      
+      - name: Install CookCLI
+        run: |
+          # Download latest CookCLI release
+          COOK_VERSION="0.19.0"
+          wget https://github.com/cooklang/CookCLI/releases/download/v${COOK_VERSION}/cook-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf cook-x86_64-unknown-linux-gnu.tar.gz
+          sudo mv cook /usr/local/bin/
+          chmod +x /usr/local/bin/cook
+          cook --version
+      
+      - name: Create output directories
+        run: |
+          mkdir -p generated/schema-org
+          mkdir -p generated/markdown
+          mkdir -p generated/html
+      
+      - name: Export to Schema.org JSON
+        run: |
+          for recipe in recipes/*.cook; do
+            if [ -f "$recipe" ]; then
+              filename=$(basename "$recipe" .cook)
+              echo "Exporting $filename to schema.org..."
+              cook recipe export --format json "$recipe" > "generated/schema-org/${filename}.json"
+            fi
+          done
+      
+      - name: Export to Markdown
+        run: |
+          for recipe in recipes/*.cook; do
+            if [ -f "$recipe" ]; then
+              filename=$(basename "$recipe" .cook)
+              echo "Exporting $filename to markdown..."
+              cook recipe "$recipe" --format md > "generated/markdown/${filename}.md"
+            fi
+          done
+      
+      - name: Export to HTML
+        run: |
+          for recipe in recipes/*.cook; do
+            if [ -f "$recipe" ]; then
+              filename=$(basename "$recipe" .cook)
+              echo "Exporting $filename to HTML..."
+              cook recipe "$recipe" --format html > "generated/html/${filename}.html"
+            fi
+          done
+      
+      - name: Generate index files
+        run: |
+          # Create JSON index
+          echo "[" > generated/schema-org/index.json
+          first=true
+          for file in generated/schema-org/*.json; do
+            if [ "$file" != "generated/schema-org/index.json" ]; then
+              if [ "$first" = false ]; then echo "," >> generated/schema-org/index.json; fi
+              cat "$file" >> generated/schema-org/index.json
+              first=false
+            fi
+          done
+          echo "]" >> generated/schema-org/index.json
+          
+          # Create Markdown index
+          echo "# Recipe Collection" > generated/markdown/INDEX.md
+          echo "" >> generated/markdown/INDEX.md
+          echo "Total recipes: $(ls recipes/*.cook 2>/dev/null | wc -l)" >> generated/markdown/INDEX.md
+          echo "" >> generated/markdown/INDEX.md
+          for recipe in recipes/*.cook; do
+            if [ -f "$recipe" ]; then
+              filename=$(basename "$recipe" .cook)
+              title=$(head -n1 "$recipe" | sed 's/>>//g' | xargs)
+              echo "- [$title]($filename.md)" >> generated/markdown/INDEX.md
+            fi
+          done
+      
+      - name: Commit generated files
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add generated/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 Auto-export recipes [skip ci]" && git push)
+      
+      # - name: Trigger Tandoor import (optional)
+      #   if: github.ref == 'refs/heads/main'
+      #   env:
+      #     N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      #   run: |
+      #     if [ ! -z "$N8N_WEBHOOK_URL" ]; then
+      #       echo "Triggering Tandoor import via n8n webhook..."
+      #       for json_file in generated/schema-org/*.json; do
+      #         if [ "$json_file" != "generated/schema-org/index.json" ]; then
+      #           curl -X POST "$N8N_WEBHOOK_URL" \
+      #             -H "Content-Type: application/json" \
+      #             -d @"$json_file"
+      #         fi
+      #       done
+      #     fi
