@@ -4,4 +4,4 @@
 
 ## All Recipes
 
-- [Vegan Caesar Pasta Salad](./2025-12-01-vegan-caesar-pasta-salad.md)
+- [---](./2025-12-01-vegan-caesar-pasta-salad.md)
