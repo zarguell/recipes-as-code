@@ -1,1 +1,57 @@
-{"@context":"https://schema.org","@type":"Recipe","keywords":"vegan, pasta, salad, healthy","name":"Vegan Caesar Pasta Salad","recipeIngredient":["1 cup chickpeas","0.5 tsp salt","0.5 tsp smoked paprika","1 tbsp olive oil","4 oz pasta","1 cup cashews","2 tbsp lemon juice","1 tbsp capers","1 tbsp caper brine","2 tsp dijon mustard","0.75 cup water","1 tsp garlic powder","0.25 tsp pepper","2 cups kale","0.25 cup vegan parmesan cheese"],"recipeInstructions":[{"@type":"HowToStep","name":"Step 1","text":"Preheat your oven to 400°F. On a sheet pan, toss chickpeas with salt, smoked paprika, and olive oil. Roast in the oven for 15 minutes until crisp."},{"@type":"HowToStep","name":"Step 2","text":"Meanwhile, cook pasta in salted water until al dente, then drain."},{"@type":"HowToStep","name":"Step 3","text":"In a blender, blend all dressing ingredients until smooth: cashews, olive oil, lemon juice, capers, caper brine, dijon mustard, salt, water, garlic powder, and pepper until smooth."},{"@type":"HowToStep","name":"Step 4","text":"In a large bowl, toss kale, pasta, roasted chickpeas, and vegan parmesan cheese until evenly combined. Drizzle the dressing over and toss until the salad is well coated."},{"@type":"HowToStep","name":"Step 5","text":"Taste and adjust salt/pepper if needed, and serve immediately."}],"recipeYield":"2 servings","tool":["oven","sheet pan","large bowl"],"url":"healthygirlkitchen"}
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "keywords": "vegan, pasta, salad, healthy",
+  "name": "Vegan Caesar Pasta Salad",
+  "recipeIngredient": [
+    "1 cup chickpeas",
+    "0.5 tsp salt",
+    "0.5 tsp smoked paprika",
+    "1 tbsp olive oil",
+    "4 oz pasta",
+    "1 cup cashews",
+    "2 tbsp lemon juice",
+    "1 tbsp capers",
+    "1 tbsp caper brine",
+    "2 tsp dijon mustard",
+    "0.75 cup water",
+    "1 tsp garlic powder",
+    "0.25 tsp pepper",
+    "2 cups kale",
+    "0.25 cup vegan parmesan cheese"
+  ],
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "name": "Step 1",
+      "text": "Preheat your oven to 400°F. On a sheet pan, toss chickpeas with salt, smoked paprika, and olive oil. Roast in the oven for 15 minutes until crisp."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Step 2",
+      "text": "Meanwhile, cook pasta in salted water until al dente, then drain."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Step 3",
+      "text": "In a blender, blend all dressing ingredients until smooth: cashews, olive oil, lemon juice, capers, caper brine, dijon mustard, salt, water, garlic powder, and pepper until smooth."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Step 4",
+      "text": "In a large bowl, toss kale, pasta, roasted chickpeas, and vegan parmesan cheese until evenly combined. Drizzle the dressing over and toss until the salad is well coated."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Step 5",
+      "text": "Taste and adjust salt/pepper if needed, and serve immediately."
+    }
+  ],
+  "recipeYield": "2 servings",
+  "tool": [
+    "oven",
+    "sheet pan",
+    "large bowl"
+  ],
+  "url": "healthygirlkitchen"
+}
