@@ -1,7 +1,8 @@
 {
   "@context": "https://schema.org",
   "@type": "Recipe",
-  "keywords": "vegan, pasta, salad, healthy",
+  "image": "https://scontent-iad3-1.cdninstagram.com/v/t51.71878-15/505125670_727993896286374_8367860102975635784_n.jpg?stp=cmp1_dst-jpg_e35_s640x640_tt6&_nc_cat=104&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D&_nc_ohc=MO-aUcPZuZgQ7kNvwEZ2Blb&_nc_oc=AdmZZdLZj2bFjrAdUSqGjzRlbQ_JpOGMh4G5nC2gphkk3U3vn7O0msvM77EsaJjvW_A&_nc_zt=23&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_gid=w42ZDjXGOEXtT6BkqBP_0g&oh=00_AfiAbj1qDd0otdArqSPAr-8WjaiTjIg4XyLGL4zPc0ew4g&oe=6932C195",
+  "keywords": "vegan, pasta, salad, plant-based, healthy",
   "name": "Vegan Caesar Pasta Salad",
   "recipeIngredient": [
     "1 cup chickpeas",
@@ -53,5 +54,5 @@
     "sheet pan",
     "large bowl"
   ],
-  "url": "healthygirlkitchen"
+  "url": "https://www.instagram.com/reel/DATYBT6J91b/"
 }
