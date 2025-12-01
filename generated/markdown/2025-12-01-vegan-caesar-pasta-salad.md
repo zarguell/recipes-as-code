@@ -7,49 +7,50 @@ tags:
 - vegan
 - pasta
 - salad
-- caesar
 source: healthygirlkitchen
-image: null
+image: vegan-caesar-pasta-salad.jpg
 name: Vegan Caesar Pasta Salad
 ---
 
 # Vegan Caesar Pasta Salad
 
-#vegan #pasta #salad #caesar
+#vegan #pasta #salad
 
 ## Ingredients
 
-- *2 cups* roasted_chickpeas
-- *2 tbsp* olive_oil
+- *2 cups* chickpeas
+- *1 tsp* smoked paprika
+- *3 tbsp* olive oil
 - *12 oz* pasta
-- *4 cups, chopped* kale
-- *1 cup* cashews
-- *2 tbsp* lemon_juice
+- *4 cups* kale
+- *12 oz* pasta
+- *0.5 cup* vegan parmesan cheese
+- *1 cup* raw cashews
+- *3 tbsp* olive oil
+- *2 tbsp* lemon juice
 - *1 tbsp* capers
-- *1 tbsp* caper_brine
-- *2 tsp* dijon_mustard
+- *1 tsp* caper brine
+- *2 tsp* dijon mustard
+- *0.5 tsp* salt
 - *0.75 cup* water
-- *1 tsp* garlic_powder
-- *0.25 tsp* black_pepper
-- *0.5 cup* vegan_parmesan
+- *1 tsp* garlic powder
+- *0.125 tsp* pepper
 
 ## Cookware
 
 - oven
-- baking_sheet
-- large_bowl
+- baking sheet
+- large pot
+- large bowl
 
 ## Steps
 
-1. Preheat your oven to 400°F. In a baking_sheet lined with parchment paper,
-toss roasted_chickpeas with salt{1/2%tsp}, smoked_paprika{1%tsp}, and olive_oil;
-roast for 15 minutes. Meanwhile, bring a large pot of water to a boil and cook
-pasta until al dente, about 9 minutes. Drain the pasta and set aside. In a
-large_bowl, add kale and the hot pasta to wilt the greens.
-
-2. In a blender, blend cashews, olive oil, lemon_juice, capers, caper_brine,
-dijon_mustard, salt{1/2%tsp}, water, garlic_powder, and black_pepper until
-smooth to form the caesar dressing. Pour dressing over the kale and pasta
-and toss to coat. Sprinkle vegan_parmesan over the salad and top with roasted
-chickpeas. Serve immediately.
+1. Preheat your oven to 400°F. On a baking sheet, toss chickpeas with smoked
+paprika and olive oil until coated, then roast for 15 minutes. Meanwhile, bring
+a large pot of salted water to a boil and cook pasta until al dente, about 10
+minutes, then drain. In a large bowl, toss kale with pasta and vegan parmesan
+cheese. Add the roasted chickpeas and mix to combine. For the dressing, in a
+blender, blend raw cashews, olive oil, lemon juice, capers, caper brine, dijon
+mustard, salt, water, garlic powder, and pepper until smooth. Pour dressing over
+the salad and toss to coat; serve immediately or refrigerate for up to 1 day.
 
