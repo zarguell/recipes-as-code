@@ -16,11 +16,13 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Install CookCLI
+      - name: Install latest CookCLI
         run: |
-          COOK_VERSION="0.8.0"
-          wget https://github.com/cooklang/CookCLI/releases/download/v${COOK_VERSION}/cook-x86_64-unknown-linux-gnu.tar.gz
-          tar -xzf cook-x86_64-unknown-linux-gnu.tar.gz
+          # Get latest release version
+          LATEST_URL=$(curl -s https://api.github.com/repos/cooklang/CookCLI/releases/latest | grep "browser_download_url.*x86_64-unknown-linux-gnu.tar.gz" | cut -d '"' -f 4)
+          echo "Downloading from: $LATEST_URL"
+          wget -q "$LATEST_URL" -O cook.tar.gz
+          tar -xzf cook.tar.gz
           sudo mv cook /usr/local/bin/
           chmod +x /usr/local/bin/cook
           cook --version
@@ -38,50 +40,44 @@ jobs:
               filename=$(basename "$recipe" .cook)
               echo "📝 Exporting $filename..."
               
-              # Schema.org (for Tandoor)
-              cook recipe "$recipe" -f schema --pretty > "generated/schema-org/${filename}.json"
+              # Try schema format first, fallback to json if not available
+              if cook recipe "$recipe" -f schema --help 2>&1 | grep -q "schema"; then
+                cook recipe "$recipe" -f schema -o "generated/schema-org/${filename}.json"
+              else
+                echo "  ⚠️  Schema format not available, using JSON"
+                cook recipe "$recipe" -f json -o "generated/schema-org/${filename}.json"
+              fi
               
               # Markdown (for browsing/static site)
-              cook recipe "$recipe" -f markdown > "generated/markdown/${filename}.md"
+              cook recipe "$recipe" -f markdown -o "generated/markdown/${filename}.md"
               
               # JSON (for programmatic access)
-              cook recipe "$recipe" -f json --pretty > "generated/json/${filename}.json"
+              cook recipe "$recipe" -f json -o "generated/json/${filename}.json"
             fi
           done
       
       - name: Generate index files
         run: |
-          # Recipe count
           recipe_count=$(ls recipes/*.cook 2>/dev/null | wc -l)
           
           # Markdown index
-          echo "# Recipe Collection" > generated/markdown/INDEX.md
-          echo "" >> generated/markdown/INDEX.md
-          echo "📚 Total recipes: **${recipe_count}**" >> generated/markdown/INDEX.md
-          echo "" >> generated/markdown/INDEX.md
-          echo "## All Recipes" >> generated/markdown/INDEX.md
-          echo "" >> generated/markdown/INDEX.md
+          cat > generated/markdown/INDEX.md << 'EOF'
+# Recipe Collection
+
+📚 Total recipes: **RECIPE_COUNT**
+
+## All Recipes
+
+EOF
+          sed -i "s/RECIPE_COUNT/$recipe_count/g" generated/markdown/INDEX.md
           
           for recipe in recipes/*.cook; do
             if [ -f "$recipe" ]; then
               filename=$(basename "$recipe" .cook)
-              # Extract title from first line
               title=$(head -n1 "$recipe" | sed 's/>>//g' | xargs)
               echo "- [$title](./${filename}.md)" >> generated/markdown/INDEX.md
             fi
           done
-          
-          # Schema.org index (array of all recipes)
-          echo "[" > generated/schema-org/index.json
-          first=true
-          for file in generated/schema-org/*.json; do
-            if [ "$(basename "$file")" != "index.json" ]; then
-              if [ "$first" = false ]; then echo "," >> generated/schema-org/index.json; fi
-              cat "$file" >> generated/schema-org/index.json
-              first=false
-            fi
-          done
-          echo "]" >> generated/schema-org/index.json
           
           echo "✅ Generated index files"
       
@@ -91,7 +87,6 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add generated/
           
-          # Only commit if there are changes
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
@@ -106,12 +101,10 @@ jobs:
       #   run: |
       #     echo "🍳 Triggering Tandoor import..."
       #     for json_file in generated/schema-org/*.json; do
-      #       if [ "$(basename "$json_file")" != "index.json" ]; then
-      #         filename=$(basename "$json_file")
-      #         echo "Importing: $filename"
-      #         curl -X POST "$N8N_WEBHOOK_URL" \
-      #           -H "Content-Type: application/json" \
-      #           -d @"$json_file" \
-      #           -s -o /dev/null -w "  Status: %{http_code}\n"
-      #       fi
+      #       filename=$(basename "$json_file")
+      #       echo "Importing: $filename"
+      #       curl -X POST "$N8N_WEBHOOK_URL" \
+      #         -H "Content-Type: application/json" \
+      #         -d @"$json_file" \
+      #         -s -o /dev/null -w "  Status: %{http_code}\n"
       #     done
