@@ -55,21 +55,18 @@ jobs:
               cook recipe "$recipe" -f json -o "generated/json/${filename}.json"
             fi
           done
-      
+
       - name: Generate index files
         run: |
           recipe_count=$(ls recipes/*.cook 2>/dev/null | wc -l)
           
           # Markdown index
-          cat > generated/markdown/INDEX.md << 'EOF'
-# Recipe Collection
-
-📚 Total recipes: **RECIPE_COUNT**
-
-## All Recipes
-
-EOF
-          sed -i "s/RECIPE_COUNT/$recipe_count/g" generated/markdown/INDEX.md
+          echo "# Recipe Collection" > generated/markdown/INDEX.md
+          echo "" >> generated/markdown/INDEX.md
+          echo "📚 Total recipes: **${recipe_count}**" >> generated/markdown/INDEX.md
+          echo "" >> generated/markdown/INDEX.md
+          echo "## All Recipes" >> generated/markdown/INDEX.md
+          echo "" >> generated/markdown/INDEX.md
           
           for recipe in recipes/*.cook; do
             if [ -f "$recipe" ]; then
@@ -80,7 +77,7 @@ EOF
           done
           
           echo "✅ Generated index files"
-      
+
       - name: Commit generated files
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
