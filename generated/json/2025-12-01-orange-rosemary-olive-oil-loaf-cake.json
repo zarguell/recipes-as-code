@@ -1,0 +1,502 @@
+{
+  "metadata": {
+    "map": {
+      "title": "orange rosemary olive oil loaf cake",
+      "servings": 12,
+      "prep_time": "120 minutes",
+      "cook_time": "70 minutes",
+      "tags": [
+        "needparse",
+        "baking",
+        "orange",
+        "rosemary",
+        "loaf cake",
+        "olive oil"
+      ],
+      "source": "https://davebakes.com/2019/11/26/rosemary-orange-olive-oil-loaf-cake/",
+      "image": "https://davebakes.files.wordpress.com/2019/09/rosemaryorange4.jpg?w=1200"
+    }
+  },
+  "sections": [
+    {
+      "name": null,
+      "content": [
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Heat the milk in a small saucepan over a stove or in a microwave until almost boiling. Add "
+              },
+              {
+                "type": "ingredient",
+                "index": 0
+              },
+              {
+                "type": "text",
+                "value": " chopped rosemary leaves and let soak in the milk for an hour. Strain out the rosemary, squeezing dry before discarding into the compost bin. Set aside rosemary milk to be added to the cake batter. Prepare "
+              },
+              {
+                "type": "ingredient",
+                "index": 1
+              },
+              {
+                "type": "text",
+                "value": " rosemary for glaze."
+              }
+            ],
+            "number": 1
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Heat the oven to 350 degrees F. Prepare a "
+              },
+              {
+                "type": "cookware",
+                "index": 0
+              },
+              {
+                "type": "text",
+                "value": " by spraying with baking spray and lining the bottom with parchment paper that overhangs on two sides for easy removal of cake. Do not use the metal Pullman pan cover that usually comes with the pan."
+              }
+            ],
+            "number": 2
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Sift the flour, cornmeal, baking powder, and salt into a medium bowl and stir with a whisk several times to mix together. Set aside."
+              }
+            ],
+            "number": 3
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Grate the zest of about 6 large oranges to get about 5 tablespoons or more of grated orange zest. Divide in half. Add the first half of the orange zest to the flour mixture and stir with a whisk to evenly disperse zest. Reserve the other half of the zest for the glaze. Add "
+              },
+              {
+                "type": "ingredient",
+                "index": 2
+              },
+              {
+                "type": "text",
+                "value": " to the flour mixture."
+              }
+            ],
+            "number": 4
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "You can make the glaze now or while the cake is baking. Make the glaze by mixing "
+              },
+              {
+                "type": "ingredient",
+                "index": 3
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 4
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 5
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 6
+              },
+              {
+                "type": "text",
+                "value": ", and "
+              },
+              {
+                "type": "ingredient",
+                "index": 7
+              },
+              {
+                "type": "text",
+                "value": ". Stir all together until it becomes a syrup. Set aside until needed."
+              }
+            ],
+            "number": 5
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "In a medium bowl whisk or beat the sugar and olive oil with an electric handheld mixer with beaters. Add the eggs, one by one and blend, then add the "
+              },
+              {
+                "type": "ingredient",
+                "index": 8
+              },
+              {
+                "type": "text",
+                "value": " and blend again until all of the ingredients are thoroughly mixed together."
+              }
+            ],
+            "number": 6
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Add about one-third of the flour mixture to the olive oil mixture, beating on low with a handheld electric mixer or whisk just until all flour added is wet. Add half of the rosemary milk and beat again on low just until mixed. Scrape down the sides of the bowl and repeat with a second one-third of the flour mixture, beating, then add the rest of the milk and mix again and finally add the rest of the flour and beat again until thoroughly mixed in."
+              }
+            ],
+            "number": 7
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Pour into the prepared pan and bake for about "
+              },
+              {
+                "type": "timer",
+                "index": 0
+              },
+              {
+                "type": "text",
+                "value": ", or until the edges are golden brown and sticking a toothpick into the center of the cake comes out clean, is not wet."
+              }
+            ],
+            "number": 8
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "To glaze the loaf cake, place a large sheet of aluminum foil over a counter or baking sheet and when the cake is done, remove from the oven and lift the cake to the center of the sheet of aluminum foil. You can also just do this over a clean baking sheet, but I like how I can lift the foil to help the syrup go to areas of the loaf that hasn’t had a chance to be coated by the glaze. Slowly pour the glaze over the top of the cake, letting it drip down the sides of the cake. You can use a pastry brush to brush the glaze all over the cake, or just try to get all the surface of the tops and sides by moving the cake around in the foil or baking sheet. Lift the cake and let some of the glaze go under the cake as well. After all the glaze has been added, let it soak as much into the cake as possible."
+              }
+            ],
+            "number": 9
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Transfer the cake to a platter and place a long sprig of rosemary over the top as garnish. Slice and serve."
+              }
+            ],
+            "number": 10
+          }
+        }
+      ]
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "rosemary",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.5
+          }
+        },
+        "unit": "cup",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "rosemary",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tablespoon",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "orange zest",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.5
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "orange juice",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.75
+          }
+        },
+        "unit": "cup",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "sugar",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "cup",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "rosemary",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tablespoon",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "orange extract",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "teaspoon",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "orange zest",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.5
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "orange extract",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tablespoon",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    }
+  ],
+  "cookware": [
+    {
+      "name": "pullman loaf pan",
+      "alias": null,
+      "quantity": null,
+      "note": null,
+      "relation": {
+        "type": "definition",
+        "referenced_from": [],
+        "defined_in_step": true
+      },
+      "modifiers": ""
+    }
+  ],
+  "timers": [
+    {
+      "name": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 70.0
+          }
+        },
+        "unit": "minutes",
+        "scalable": false
+      }
+    }
+  ],
+  "inline_quantities": []
+}
