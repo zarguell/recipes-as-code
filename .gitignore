@@ -21,6 +21,10 @@ temp/
 /static/json/*.json
 /static/schema-org/*.json
 resources/_gen/
+.hugo_build.lock
 
 # Keep the structure
 !content/recipes/_index.md
+!content/markdown
+!content/json
+!content/schema-org
