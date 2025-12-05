@@ -13,3 +13,14 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Hugo build artifacts
+/public/
+/content/recipes/*.md
+/static/recipes/*.cook
+/static/json/*.json
+/static/schema-org/*.json
+resources/_gen/
+
+# Keep the structure
+!content/recipes/_index.md
