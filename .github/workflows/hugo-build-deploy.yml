@@ -78,12 +78,12 @@ jobs:
               filename=$(basename "$recipe" .cook)
               echo "📝 Exporting $filename..."
               
-              # Extract metadata from .cook file
-              title=$(grep "^>>" "$recipe" | grep -i "title:" | head -1 | sed 's/>>\s*title:\s*//I' || basename "$recipe" .cook)
-              servings=$(grep "^>>" "$recipe" | grep -i "servings:" | head -1 | sed 's/>>\s*servings:\s*//I')
-              time=$(grep "^>>" "$recipe" | grep -i "time:" | head -1 | sed 's/>>\s*time:\s*//I')
-              tags=$(grep "^>>" "$recipe" | grep -i "tags:" | head -1 | sed 's/>>\s*tags:\s*//I')
-              difficulty=$(grep "^>>" "$recipe" | grep -i "difficulty:" | head -1 | sed 's/>>\s*difficulty:\s*//I')
+              # Extract metadata from .cook file (fail-safe)
+              title=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "title:" | head -1 | sed 's/>>\s*title:\s*//I' || echo "$filename")
+              servings=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "servings:" | head -1 | sed 's/>>\s*servings:\s*//I' || echo "")
+              time=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "time:" | head -1 | sed 's/>>\s*time:\s*//I' || echo "")
+              tags=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "tags:" | head -1 | sed 's/>>\s*tags:\s*//I' || echo "")
+              difficulty=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "difficulty:" | head -1 | sed 's/>>\s*difficulty:\s*//I' || echo "")
               
               # Hugo content with full front matter
               {
@@ -92,7 +92,10 @@ jobs:
                 echo "date: $(date -r "$recipe" -Iseconds)"
                 echo "draft: false"
                 [ -n "$servings" ] && echo "servings: $servings"
-                [ -n "$time" ] && echo "total_time: $(echo $time | sed 's/[^0-9]*//g')"
+                if [ -n "$time" ]; then
+                  time_num=$(echo "$time" | sed 's/[^0-9]*//g')
+                  [ -n "$time_num" ] && echo "total_time: $time_num"
+                fi
                 if [ -n "$tags" ]; then
                   echo "tags:"
                   echo "$tags" | tr ',' '\n' | sed 's/^[[:space:]]*/  - /'
@@ -103,7 +106,7 @@ jobs:
                 cook recipe "$recipe" -f markdown
               } > "content/recipes/${filename}.md"
               
-              # Schema.org and JSON exports (unchanged)
+              # Schema.org and JSON exports
               cook recipe "$recipe" -f json | jq '.' > "static/schema-org/${filename}.json"
               cook recipe "$recipe" -f json | jq '.' > "static/json/${filename}.json"
               
