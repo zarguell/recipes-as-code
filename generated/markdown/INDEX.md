@@ -1,6 +1,6 @@
 # Recipe Collection
 
-📚 Total recipes: **11**
+📚 Total recipes: **12**
 
 ## All Recipes
 
@@ -12,6 +12,7 @@
 - [Aperol Spritz Ice Cream](./2025-12-04-aperol-spritz-ice-cream.md)
 - [Brown Sugar Espresso Overnight Oats](./2025-12-04-brown-sugar-espresso-overnight-oats.md)
 - [Cheesy leeks & beans with garlicky breadcrumbs & tangy pickled onions](./2025-12-04-cheesy-leeks-beans-with-garlicky-breadcrumbs-tangy-pickled-onions.md)
+- [Greek yogurt black and white cookies with lemon glaze and pomegranate pistachio topping](./2025-12-04-greek-yogurt-black-and-white-cookies-with-lemon-glaze-and-pomegranate-pistachio-topping.md)
 - [Lentil Smashburger Taco](./2025-12-04-lentil-smashburger-taco.md)
 - [Sourdough Cheddar Bay Biscuits](./2025-12-04-sourdough-cheddar-bay-biscuits.md)
 - [Vegan Caesar Pasta Salad](./2025-12-04-vegan-caesar-pasta-salad.md)
