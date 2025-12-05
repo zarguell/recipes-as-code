@@ -107,14 +107,15 @@ jobs:
       
       - name: Create recipe index
         run: |
-          cat > content/recipes/_index.md << 'EOF'
----
-title: "Recipe Collection"
-layout: list
----
+          cat > content/recipes/_index.md <<'EOF'
+          ---
+          title: "Recipe Collection"
+          layout: list
+          ---
+          
+          Browse all recipes below or subscribe to the [RSS feed](/recipes/index.xml).
+          EOF
 
-Browse all recipes below or subscribe to the [RSS feed](/recipes/index.xml).
-EOF
       
       - name: Build Hugo Site
         env:
