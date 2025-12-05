@@ -1,0 +1,78 @@
+---
+title: Cheesy leeks & beans with garlicky breadcrumbs & tangy pickled onions
+servings: 2
+prep_time: 15 minutes
+cook_time: 15 minutes
+tags:
+- vegan
+- plant-based
+- high-protein
+- high-fiber
+- quick-meal
+source: https://www.instagram.com/reel/C0SAcKCq5Jj/
+image: https://scontent-iad3-2.cdninstagram.com/v/t51.71878-15/503178516_2760570150792718_6922442434576193691_n.jpg?stp=cmp1_dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D&_nc_ohc=Wf7lTPQuEbEQ7kNvwH89GIz&_nc_oc=Adlerw--crz8HDmlkoksmENSk4-Cgz0cVFfsiEzISE7LrWoGJYIQJYQeT00GEbMG0B4&_nc_zt=23&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_gid=Live2ufv4bnQhJmQ7DZrEA&oh=00_AfnhFZpY6vBrWUYTk2WbmD_7uWzBPISy-3bFIsd_cT4dFA&oe=69383241
+name: Cheesy leeks & beans with garlicky breadcrumbs & tangy pickled onions
+---
+
+# Cheesy leeks & beans with garlicky breadcrumbs & tangy pickled onions
+
+#vegan #plant-based #high-protein #high-fiber #quick-meal
+
+## Ingredients
+
+- *35 g* cashews
+- *1 head* broccoli
+- *2 heads* leeks
+- *pinch* salt
+- *3 cloves* garlic
+- *1 tsp* cumin
+- *1 tsp* coriander
+- *280 g* tofu
+- *15 g* nooch
+- *35 g* cashews
+- *1 clove* garlic
+- *1 tsp* garlic powder
+- *1 tsp* paprika
+- *1 tbsp* miso
+- *1 tbsp* lemon juice
+- *1 tsp* dijon mustard
+- *to taste* salt
+- *to taste* pepper
+- *1 tbsp* water
+- *580 g* butterbeans or cannellini beans
+- *1 slice* bread
+- *1 tbsp* olive oil
+- *1 tsp* garlic powder
+- *to taste* salt
+- *0.5 piece* red onion
+- *2 tbsp* lime juice
+- *0.5 tsp* salt
+
+## Cookware
+
+- oven
+
+## Steps
+
+1. Preheat your oven to 180°C fan. Boil the kettle and soak cashews in boiling
+water for 10 minutes. Roast broccoli for 15 minutes until starting to crisp
+and char.
+
+2. While the broccoli roasts, slowly caramelise leeks for 10 minutes with a
+pinch of salt. Then add garlic and the spices: cumin, coriander. Cook for 2
+minutes more, then turn off the heat.
+
+3. Blend the sauce ingredients together: tofu, nooch, cashews, garlic or garlic
+powder, paprika, miso, lemon juice, dijon mustard, salt, pepper, and water. Add
+the sauce to the leeks, and add butterbeans or cannellini beans plus most of
+the can juice if desired. Turn the heat back on and warm through so the sauce
+thickens up, stirring continuously. Add the roasted broccoli in, nestling it
+into the center of the dish.
+
+4. Ladle into bowls and dig in with a nice big hunk of bread. To serve, prepare
+garlicky breadcrumbs by whizzing bread into crumbs, then frying with olive oil,
+garlic powder, and salt until crispy. Quick tangy pink pickled onions come next:
+mix red onion with the juice of lime juice and salt to taste.
+
+5. Optional chilli oil: drizzle over bowls if you like a spicy finish.
+
