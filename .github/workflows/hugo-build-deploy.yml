@@ -73,29 +73,49 @@ jobs:
       
       - name: Export recipes to all formats
         run: |
+          mkdir -p static/recipes static/schema-org static/json static/images/recipes
+
           for recipe in recipes/*.cook; do
             if [ -f "$recipe" ]; then
               filename=$(basename "$recipe" .cook)
               echo "📝 Exporting $filename..."
-              
-              # Extract YAML front matter (between --- markers)
-              title=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^title:" | head -1 | sed 's/title:[[:space:]]*//I' || echo "$filename")
-              servings=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^servings:" | head -1 | sed 's/servings:[[:space:]]*//I' || echo "")
-              prep_time=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^prep_time:" | head -1 | sed 's/prep_time:[[:space:]]*//I' || echo "")
-              cook_time=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^cook_time:" | head -1 | sed 's/cook_time:[[:space:]]*//I' || echo "")
-              tags=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^tags:" | head -1 | sed 's/tags:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
-              source=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^source:" | head -1 | sed 's/source:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
-              image=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^image:" | head -1 | sed 's/image:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
-              
-              # Calculate total time
+
+              # Extract YAML front matter block
+              fm=$(awk '/^---$/{flag=!flag;next}flag' "$recipe")
+
+              # Parse fields from front matter
+              title=$(echo "$fm" | grep -i "^title:" | head -1 | sed 's/title:[[:space:]]*//I' || echo "$filename")
+              servings=$(echo "$fm" | grep -i "^servings:" | head -1 | sed 's/servings:[[:space:]]*//I' || echo "")
+              prep_time=$(echo "$fm" | grep -i "^prep_time:" | head -1 | sed 's/prep_time:[[:space:]]*//I' || echo "")
+              cook_time=$(echo "$fm" | grep -i "^cook_time:" | head -1 | sed 's/cook_time:[[:space:]]*//I' || echo "")
+              tags=$(echo "$fm" | grep -i "^tags:" | head -1 | sed 's/tags:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
+              source=$(echo "$fm" | grep -i "^source:" | head -1 | sed 's/source:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
+              image_url=$(echo "$fm" | grep -i "^image:" | head -1 | sed 's/image:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
+
+              # Calculate total time in minutes
               total_time=""
               if [ -n "$prep_time" ] || [ -n "$cook_time" ]; then
                 prep_num=$(echo "$prep_time" | sed 's/[^0-9]*//g' || echo "0")
                 cook_num=$(echo "$cook_time" | sed 's/[^0-9]*//g' || echo "0")
                 total_time=$((${prep_num:-0} + ${cook_num:-0}))
               fi
-              
-              # Hugo content with full front matter
+
+              # Download image once into static/images/recipes/<slug>.<ext>
+              local_image=""
+              if [ -n "$image_url" ]; then
+                # Strip query string, keep extension
+                base_name=$(basename "${image_url%%\?*}")
+                ext="${base_name##*.}"
+                # Fallback if extension is weird
+                [ "$ext" = "$base_name" ] && ext="jpg"
+                local_image="images/recipes/${filename}.${ext}"
+                if [ ! -f "static/${local_image}" ]; then
+                  echo "  🖼️ Fetching image: $image_url -> static/${local_image}"
+                  curl -L --fail --silent "$image_url" -o "static/${local_image}" || echo "  ⚠️ Failed to download image for $filename"
+                fi
+              fi
+
+              # Hugo content with front matter pointing at local image path (if present)
               {
                 echo "---"
                 echo "title: \"${title}\""
@@ -110,22 +130,26 @@ jobs:
                   echo "$tags" | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; /^$/d' | sed 's/^/  - /'
                 fi
                 [ -n "$source" ] && echo "source: \"$source\""
-                [ -n "$image" ] && echo "image: \"$image\""
+                # Use local image path if we managed to download it; otherwise keep original URL
+                if [ -n "$local_image" ] && [ -f "static/${local_image}" ]; then
+                  echo "image: \"/${local_image}\""
+                elif [ -n "$image_url" ]; then
+                  echo "image: \"$image_url\""
+                fi
                 echo "---"
                 echo ""
                 cook recipe "$recipe" -f markdown
               } > "content/recipes/${filename}.md"
-              
-              # Schema.org and JSON exports
+
+              # Schema.org + JSON exports
               cook recipe "$recipe" -f json | jq '.' > "static/schema-org/${filename}.json"
               cook recipe "$recipe" -f json | jq '.' > "static/json/${filename}.json"
-              
-              # Copy raw .cook file
+
+              # Raw .cook for federation
               cp "$recipe" "static/recipes/${filename}.cook"
             fi
           done
 
-      
       - name: Create recipe index
         run: |
           cat > content/recipes/_index.md <<'EOF'
