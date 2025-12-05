@@ -78,32 +78,40 @@ jobs:
               filename=$(basename "$recipe" .cook)
               echo "📝 Exporting $filename..."
               
-              # Hugo content (Markdown with front matter)
+              # Extract metadata from .cook file
+              title=$(grep "^>>" "$recipe" | grep -i "title:" | head -1 | sed 's/>>\s*title:\s*//I' || basename "$recipe" .cook)
+              servings=$(grep "^>>" "$recipe" | grep -i "servings:" | head -1 | sed 's/>>\s*servings:\s*//I')
+              time=$(grep "^>>" "$recipe" | grep -i "time:" | head -1 | sed 's/>>\s*time:\s*//I')
+              tags=$(grep "^>>" "$recipe" | grep -i "tags:" | head -1 | sed 's/>>\s*tags:\s*//I')
+              difficulty=$(grep "^>>" "$recipe" | grep -i "difficulty:" | head -1 | sed 's/>>\s*difficulty:\s*//I')
+              
+              # Hugo content with full front matter
               {
                 echo "---"
-                title=$(grep -m 1 "^title:" "$recipe" | sed 's/title: *//g' | xargs || echo "$filename")
-                echo "title: \"$title\""
+                echo "title: \"${title}\""
                 echo "date: $(date -r "$recipe" -Iseconds)"
                 echo "draft: false"
+                [ -n "$servings" ] && echo "servings: $servings"
+                [ -n "$time" ] && echo "total_time: $(echo $time | sed 's/[^0-9]*//g')"
+                if [ -n "$tags" ]; then
+                  echo "tags:"
+                  echo "$tags" | tr ',' '\n' | sed 's/^[[:space:]]*/  - /'
+                fi
+                [ -n "$difficulty" ] && echo "difficulty: \"$difficulty\""
                 echo "---"
                 echo ""
                 cook recipe "$recipe" -f markdown
               } > "content/recipes/${filename}.md"
               
-              # Schema.org JSON
-              if cook recipe "$recipe" -f schema --help 2>&1 | grep -q "schema"; then
-                cook recipe "$recipe" -f schema | jq '.' > "static/schema-org/${filename}.json"
-              else
-                cook recipe "$recipe" -f json | jq '.' > "static/schema-org/${filename}.json"
-              fi
-              
-              # JSON export
+              # Schema.org and JSON exports (unchanged)
+              cook recipe "$recipe" -f json | jq '.' > "static/schema-org/${filename}.json"
               cook recipe "$recipe" -f json | jq '.' > "static/json/${filename}.json"
               
               # Copy raw .cook file
               cp "$recipe" "static/recipes/${filename}.cook"
             fi
           done
+
       
       - name: Create recipe index
         run: |
@@ -116,20 +124,15 @@ jobs:
           Browse all recipes below or subscribe to the [RSS feed](/recipes/index.xml).
           EOF
 
-      
       - name: Build Hugo Site
         env:
-          HUGO_BASEURL: ${{ steps.site-url.outputs.url }}
           HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
           HUGO_ENVIRONMENT: production
         run: |
-          echo "🏗️  Building Hugo site..."
-          echo "🔗 Using baseURL: ${HUGO_BASEURL}"
-          
-          # Update baseURL in config for current environment
-          sed -i.bak "s|baseURL = .*|baseURL = \"$HUGO_BASEURL\"|g" config.toml
-          
-          hugo --minify --baseURL "$HUGO_BASEURL"
+          SITE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "🏗️  Building Hugo site with baseURL: ${SITE_URL}"
+          hugo --minify --baseURL "${SITE_URL}"
+
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

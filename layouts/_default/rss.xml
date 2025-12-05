@@ -1,0 +1,49 @@
+{{- $pctx := . -}}
+{{- if .IsHome -}}{{ $pctx = .Site }}{{- end -}}
+{{- $pages := slice -}}
+{{- if or $.IsHome $.IsSection -}}
+{{- $pages = $pctx.RegularPages -}}
+{{- else -}}
+{{- $pages = $pctx.Pages -}}
+{{- end -}}
+{{- $limit := .Site.Config.Services.RSS.Limit -}}
+{{- if ge $limit 1 -}}
+{{- $pages = $pages | first $limit -}}
+{{- end -}}
+{{- printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<rss version="2.0" xmlns:cooklang="https://cooklang.org/feeds/1.0">
+  <channel>
+    <title>{{ if eq .Title .Site.Title }}{{ .Site.Title }}{{ else }}{{ with .Title }}{{.}} on {{ end }}{{ .Site.Title }}{{ end }}</title>
+    <link>{{ .Permalink }}</link>
+    <description>{{ with .Site.Params.description }}{{.}}{{ else }}Recent recipes{{ end }}</description>
+    <language>{{ .Site.LanguageCode }}</language>
+    <lastBuildDate>{{ now.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</lastBuildDate>
+    {{ range $pages }}
+    <item>
+      <title>{{ .Title }}</title>
+      <link>{{ .Permalink }}</link>
+      <enclosure url="{{ $.Site.BaseURL }}recipes/{{ path.Base .File.Path | replaceRE "\\.md$" ".cook" }}" type="text/plain"/>
+      <guid isPermaLink="true">{{ .Permalink }}</guid>
+      <pubDate>{{ .Date.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</pubDate>
+      <description>{{ .Summary | html }}</description>
+      
+      <cooklang:recipe>
+        {{ with .Params.servings }}<cooklang:servings>{{ . }}</cooklang:servings>{{ end }}
+        {{ if or .Params.total_time .Params.active_time }}
+        <cooklang:time{{ with .Params.total_time }} total="{{ . }}"{{ end }}{{ with .Params.active_time }} active="{{ . }}"{{ end }} units="minutes"/>
+        {{ end }}
+        {{ with .Params.tags }}
+        <cooklang:tags>
+          {{ range . }}<cooklang:tag>{{ . }}</cooklang:tag>{{ end }}
+        </cooklang:tags>
+        {{ end }}
+        {{ with .Params.difficulty }}<cooklang:difficulty>{{ . }}</cooklang:difficulty>{{ end }}
+        {{ with .Params.image }}<cooklang:image>{{ . }}</cooklang:image>{{ end }}
+        {{ if or .Params.calories .Params.protein .Params.carbs .Params.fat .Params.fiber }}
+        <cooklang:nutrition{{ with .Params.calories }} calories="{{ . }}"{{ end }}{{ with .Params.protein }} protein="{{ . }}"{{ end }}{{ with .Params.carbs }} carbs="{{ . }}"{{ end }}{{ with .Params.fat }} fat="{{ . }}"{{ end }}{{ with .Params.fiber }} fiber="{{ . }}"{{ end }}/>
+        {{ end }}
+      </cooklang:recipe>
+    </item>
+    {{ end }}
+  </channel>
+</rss>
