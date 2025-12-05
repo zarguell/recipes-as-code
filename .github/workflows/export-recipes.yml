@@ -6,6 +6,11 @@ on:
       - 'recipes/**/*.cook'
   workflow_dispatch:
 
+permissions:
+  contents: write  # For committing generated files
+  pages: write     # For deploying to Pages
+  id-token: write  # For OIDC authentication
+
 jobs:
   export:
     runs-on: ubuntu-latest
@@ -87,6 +92,38 @@ jobs:
           
           echo "✅ Generated index files"
 
+      - name: Generate RSS feed
+        run: |
+          cat > generated/markdown/feed.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+            <channel>
+              <title>My Recipe Collection</title>
+              <link>https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/</link>
+              <description>CookLang Recipe Feed</description>
+              <atom:link href="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/feed.xml" rel="self" type="application/rss+xml" />
+          EOF
+          
+          for recipe in recipes/*.cook; do
+            if [ -f "$recipe" ]; then
+              filename=$(basename "$recipe" .cook)
+              title=$(grep -m 1 "^title:" "$recipe" | sed 's/title: *//g' | xargs || echo "$filename")
+              date=$(date -r "$recipe" -u +"%a, %d %b %Y %H:%M:%S GMT")
+              
+              cat >> generated/markdown/feed.xml << EOF
+              <item>
+                <title>${title}</title>
+                <link>https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${filename}.html</link>
+                <guid>https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${filename}.html</guid>
+                <pubDate>${date}</pubDate>
+              </item>
+          EOF
+            fi
+          done
+          
+          echo "  </channel>" >> generated/markdown/feed.xml
+          echo "</rss>" >> generated/markdown/feed.xml
+
 
       - name: Commit generated files
         run: |
@@ -100,7 +137,12 @@ jobs:
             git commit -m "🤖 Auto-export recipes [skip ci]"
             git push
           fi
-      
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: generated/markdown
+
       # - name: Trigger Tandoor import
       #   if: github.ref == 'refs/heads/main' && secrets.N8N_WEBHOOK_URL != ''
       #   env:
@@ -115,3 +157,14 @@ jobs:
       #         -d @"$json_file" \
       #         -s -o /dev/null -w "  Status: %{http_code}\n"
       #     done
+
+  deploy:
+    needs: export
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
