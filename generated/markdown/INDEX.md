@@ -1,6 +1,6 @@
 # Recipe Collection
 
-📚 Total recipes: **8**
+📚 Total recipes: **9**
 
 ## All Recipes
 
@@ -11,4 +11,5 @@
 - [Vegan Caesar Pasta Salad](./2025-12-01-vegan-caesar-pasta-salad.md)
 - [Brown Sugar Espresso Overnight Oats](./2025-12-04-brown-sugar-espresso-overnight-oats.md)
 - [Cheesy leeks & beans with garlicky breadcrumbs & tangy pickled onions](./2025-12-04-cheesy-leeks-beans-with-garlicky-breadcrumbs-tangy-pickled-onions.md)
+- [Lentil Smashburger Taco](./2025-12-04-lentil-smashburger-taco.md)
 - [Vegan Caesar Pasta Salad](./2025-12-04-vegan-caesar-pasta-salad.md)
