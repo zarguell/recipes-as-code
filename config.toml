@@ -1,4 +1,4 @@
-baseURL = "/"  # Will be overridden by workflow
+baseURL = "https://zarguell.github.io/recipes-as-code/"  # Will be overridden by workflow
 languageCode = "en-us"
 title = "Recipe Collection"
 theme = "cookbook" 

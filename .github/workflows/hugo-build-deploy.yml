@@ -78,12 +78,22 @@ jobs:
               filename=$(basename "$recipe" .cook)
               echo "📝 Exporting $filename..."
               
-              # Extract metadata from .cook file (fail-safe)
-              title=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "title:" | head -1 | sed 's/>>\s*title:\s*//I' || echo "$filename")
-              servings=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "servings:" | head -1 | sed 's/>>\s*servings:\s*//I' || echo "")
-              time=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "time:" | head -1 | sed 's/>>\s*time:\s*//I' || echo "")
-              tags=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "tags:" | head -1 | sed 's/>>\s*tags:\s*//I' || echo "")
-              difficulty=$(grep "^>>" "$recipe" 2>/dev/null | grep -i "difficulty:" | head -1 | sed 's/>>\s*difficulty:\s*//I' || echo "")
+              # Extract YAML front matter (between --- markers)
+              title=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^title:" | head -1 | sed 's/title:[[:space:]]*//I' || echo "$filename")
+              servings=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^servings:" | head -1 | sed 's/servings:[[:space:]]*//I' || echo "")
+              prep_time=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^prep_time:" | head -1 | sed 's/prep_time:[[:space:]]*//I' || echo "")
+              cook_time=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^cook_time:" | head -1 | sed 's/cook_time:[[:space:]]*//I' || echo "")
+              tags=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^tags:" | head -1 | sed 's/tags:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
+              source=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^source:" | head -1 | sed 's/source:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
+              image=$(awk '/^---$/{flag=!flag;next}flag' "$recipe" | grep -i "^image:" | head -1 | sed 's/image:[[:space:]]*//I; s/\[//g; s/\]//g' || echo "")
+              
+              # Calculate total time
+              total_time=""
+              if [ -n "$prep_time" ] || [ -n "$cook_time" ]; then
+                prep_num=$(echo "$prep_time" | sed 's/[^0-9]*//g' || echo "0")
+                cook_num=$(echo "$cook_time" | sed 's/[^0-9]*//g' || echo "0")
+                total_time=$((${prep_num:-0} + ${cook_num:-0}))
+              fi
               
               # Hugo content with full front matter
               {
@@ -92,15 +102,15 @@ jobs:
                 echo "date: $(date -r "$recipe" -Iseconds)"
                 echo "draft: false"
                 [ -n "$servings" ] && echo "servings: $servings"
-                if [ -n "$time" ]; then
-                  time_num=$(echo "$time" | sed 's/[^0-9]*//g')
-                  [ -n "$time_num" ] && echo "total_time: $time_num"
-                fi
+                [ -n "$prep_time" ] && echo "prep_time: \"$prep_time\""
+                [ -n "$cook_time" ] && echo "cook_time: \"$cook_time\""
+                [ -n "$total_time" ] && [ "$total_time" -gt 0 ] && echo "total_time: $total_time"
                 if [ -n "$tags" ]; then
                   echo "tags:"
-                  echo "$tags" | tr ',' '\n' | sed 's/^[[:space:]]*/  - /'
+                  echo "$tags" | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; /^$/d' | sed 's/^/  - /'
                 fi
-                [ -n "$difficulty" ] && echo "difficulty: \"$difficulty\""
+                [ -n "$source" ] && echo "source: \"$source\""
+                [ -n "$image" ] && echo "image: \"$image\""
                 echo "---"
                 echo ""
                 cook recipe "$recipe" -f markdown
