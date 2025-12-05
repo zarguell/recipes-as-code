@@ -1,7 +1,10 @@
-baseURL = "https://zarguell.github.io/recipes-as-code/"  # Will be overridden by workflow
+baseURL = "https://zarguell.github.io/recipes-as-code/"
 languageCode = "en-us"
 title = "Recipe Collection"
-theme = "cookbook" 
+theme = "cookbook"
+
+canonifyURLs = true
+relativeURLs = false
 
 [outputs]
   home = ["HTML", "RSS"]

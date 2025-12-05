@@ -142,10 +142,8 @@ jobs:
           HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
           HUGO_ENVIRONMENT: production
         run: |
-          SITE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          echo "🏗️  Building Hugo site with baseURL: ${SITE_URL}"
-          hugo --minify --baseURL "${SITE_URL}"
-
+          echo "🏗️  Building Hugo site..."
+          hugo --minify
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
