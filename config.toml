@@ -1,0 +1,8 @@
+baseURL = "/"  # Will be overridden by workflow
+languageCode = "en-us"
+title = "Recipe Collection"
+theme = "cookbook" 
+
+[outputs]
+  home = ["HTML", "RSS"]
+  section = ["HTML", "RSS"]
