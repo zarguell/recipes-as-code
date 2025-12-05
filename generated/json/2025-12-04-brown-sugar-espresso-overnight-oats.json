@@ -1,0 +1,429 @@
+{
+  "metadata": {
+    "map": {
+      "title": "Brown Sugar Espresso Overnight Oats",
+      "servings": 2,
+      "prep_time": "15 minutes",
+      "cook_time": "0 minutes",
+      "tags": [
+        "coffee",
+        "overnight oats",
+        "recipe",
+        "breakfast",
+        "dalgona coffee"
+      ],
+      "source": "https://www.instagram.com/p/C3k_oUAL5Xq/",
+      "image": "https://scontent-iad3-2.cdninstagram.com/v/t51.71878-15/503040043_2154194525042308_3677237108455857077_n.jpg?stp=cmp1_dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D&_nc_ohc=Fq7UiUX8FLwQ7kNvwFEHE7D&_nc_oc=AdnRAzXYEitfPvJkCsMMUjolB2xbMSGxo3PpnZbFZT7_KEpcn8IyrD-2hWAijn9vdSE&_nc_zt=23&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_gid=qUnzlYg_Yp0I-YSeSJf1TQ&oh=00_AfldOpVFI35s-O9tS3vUGDBC9O_dRxOaZYy8Ud91iisGAw&oe=69380C5E"
+    }
+  },
+  "sections": [
+    {
+      "name": null,
+      "content": [
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Combine the overnight oats ingredients together in a bowl or jar, then cover and place in the fridge overnight or for at least 4 hours. Add "
+              },
+              {
+                "type": "ingredient",
+                "index": 0
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 1
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 2
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 3
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 4
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 5
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 6
+              },
+              {
+                "type": "text",
+                "value": ", and "
+              },
+              {
+                "type": "ingredient",
+                "index": 7
+              },
+              {
+                "type": "text",
+                "value": "."
+              }
+            ],
+            "number": 1
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "In the morning, whisk the granulated sugar, instant coffee, and boiling water together until it forms soft peaks. Add "
+              },
+              {
+                "type": "ingredient",
+                "index": 8
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 9
+              },
+              {
+                "type": "text",
+                "value": ", and "
+              },
+              {
+                "type": "ingredient",
+                "index": 10
+              },
+              {
+                "type": "text",
+                "value": "."
+              }
+            ],
+            "number": 2
+          }
+        }
+      ]
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "rolled oats",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "cup",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "chia seeds",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "salt",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.25
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "espresso",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "shot",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "oat milk",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "cup",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "brown sugar",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "vanilla",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "vanilla greek yogurt",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.5
+          }
+        },
+        "unit": "cup",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "granulated sugar",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "instant coffee",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "boiling water",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    }
+  ],
+  "cookware": [],
+  "timers": [],
+  "inline_quantities": []
+}

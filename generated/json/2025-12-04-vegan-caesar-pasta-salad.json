@@ -1,0 +1,789 @@
+{
+  "metadata": {
+    "map": {
+      "title": "Vegan Caesar Pasta Salad",
+      "servings": 4,
+      "prep_time": "1 hour 15 minutes",
+      "cook_time": "25 minutes",
+      "tags": [
+        "vegan",
+        "plant-based",
+        "pasta-salad",
+        "gluten-free",
+        "healthy-recipes"
+      ],
+      "source": "https://www.instagram.com/reel/C2Lhz2OJDVu/",
+      "image": "https://scontent-iad3-1.cdninstagram.com/v/t51.71878-15/503657190_1904178497086582_4319901106267154542_n.jpg?stp=cmp1_dst-jpg_e35_s640x640_tt6&_nc_cat=109&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzIifQ%3D%3D&_nc_ohc=zGUK967cve4Q7kNvwErfKx8&_nc_oc=Adn3oSwh4O58WxadPM-r0HXcAyIhpeeqDpCrnYATyZDweizOrv6VY3-wY2NcjTFJ-I8&_nc_zt=23&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_gid=8PFxwmj84YudeHtI7gZ1Tw&oh=00_AflQvB2z9lkWUGRkly3Fi-w8jmAAxwdfAyBVPikhTkVoaw&oe=69342E39"
+    }
+  },
+  "sections": [
+    {
+      "name": null,
+      "content": [
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Soak the cashews for at least an hour. Drain them and add to a blender with "
+              },
+              {
+                "type": "ingredient",
+                "index": 0
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 1
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 2
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 3
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 4
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 5
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 6
+              },
+              {
+                "type": "text",
+                "value": ", and "
+              },
+              {
+                "type": "ingredient",
+                "index": 7
+              },
+              {
+                "type": "text",
+                "value": ". Blend until smooth, then season with "
+              },
+              {
+                "type": "ingredient",
+                "index": 8
+              },
+              {
+                "type": "text",
+                "value": " and "
+              },
+              {
+                "type": "ingredient",
+                "index": 9
+              },
+              {
+                "type": "text",
+                "value": " to taste."
+              }
+            ],
+            "number": 1
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Preheat your "
+              },
+              {
+                "type": "cookware",
+                "index": 0
+              },
+              {
+                "type": "text",
+                "value": " to 425°F. Toss "
+              },
+              {
+                "type": "ingredient",
+                "index": 10
+              },
+              {
+                "type": "text",
+                "value": " with "
+              },
+              {
+                "type": "ingredient",
+                "index": 11
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 12
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 13
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 14
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 15
+              },
+              {
+                "type": "text",
+                "value": ", "
+              },
+              {
+                "type": "ingredient",
+                "index": 16
+              },
+              {
+                "type": "text",
+                "value": ", and "
+              },
+              {
+                "type": "ingredient",
+                "index": 17
+              },
+              {
+                "type": "text",
+                "value": " until coated. Spread on a "
+              },
+              {
+                "type": "cookware",
+                "index": 1
+              },
+              {
+                "type": "text",
+                "value": " and bake for "
+              },
+              {
+                "type": "timer",
+                "index": 0
+              },
+              {
+                "type": "text",
+                "value": " until crisp."
+              }
+            ],
+            "number": 2
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Cook the gluten free pasta{3%cups} according to package instructions, then drain and rinse under cold water. In a large bowl, add the kale{2%cups} and the cooled pasta. Add half the Caesar dressing and mix to coat the pasta and kale, then stir in the baked chickpeas and the rest of the dressing. Mix together until evenly combined."
+              }
+            ],
+            "number": 3
+          }
+        },
+        {
+          "type": "step",
+          "value": {
+            "items": [
+              {
+                "type": "text",
+                "value": "Sprinkle "
+              },
+              {
+                "type": "ingredient",
+                "index": 18
+              },
+              {
+                "type": "text",
+                "value": " on top."
+              }
+            ],
+            "number": 4
+          }
+        }
+      ]
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "water",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.5
+          }
+        },
+        "unit": "cup",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "capers",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "water from capers jar",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "lemon juice",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "dijon mustard",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "vegan mayo",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "garlic",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "cloves",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "nutritional yeast",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "salt",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.25
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "pepper",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.125
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "chickpeas",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "can",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "olive oil",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 2.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "garlic powder",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "onion powder",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.5
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "paprika",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.5
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "cayenne",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.25
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "salt",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.25
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "pepper",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 0.125
+          }
+        },
+        "unit": "tsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "nutritional yeast",
+      "alias": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 1.0
+          }
+        },
+        "unit": "tbsp",
+        "scalable": true
+      },
+      "note": null,
+      "reference": null,
+      "relation": {
+        "relation": {
+          "type": "definition",
+          "referenced_from": [],
+          "defined_in_step": true
+        },
+        "reference_target": null
+      },
+      "modifiers": ""
+    }
+  ],
+  "cookware": [
+    {
+      "name": "oven",
+      "alias": null,
+      "quantity": null,
+      "note": null,
+      "relation": {
+        "type": "definition",
+        "referenced_from": [],
+        "defined_in_step": true
+      },
+      "modifiers": ""
+    },
+    {
+      "name": "baking sheet",
+      "alias": null,
+      "quantity": null,
+      "note": null,
+      "relation": {
+        "type": "definition",
+        "referenced_from": [],
+        "defined_in_step": true
+      },
+      "modifiers": ""
+    }
+  ],
+  "timers": [
+    {
+      "name": null,
+      "quantity": {
+        "value": {
+          "type": "number",
+          "value": {
+            "type": "regular",
+            "value": 15.0
+          }
+        },
+        "unit": "minutes",
+        "scalable": false
+      }
+    }
+  ],
+  "inline_quantities": []
+}
