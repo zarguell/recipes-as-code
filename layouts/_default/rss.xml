@@ -23,9 +23,11 @@
       <title>{{ .Title }}</title>
       <link>{{ .Permalink }}</link>
 
-      {{/* Build .cook URL from the recipe permalink, without using .File */}}
-      {{- $cookURL := printf "%srecipes/%s.cook" $.Site.BaseURL (path.Base (trimSuffix "/" .Permalink)) -}}
-      <enclosure url="{{ $cookURL }}" type="text/plain"/>
+      {{/* Assume your raw .cook files are at /recipes/<slug>.cook based on .File.BaseFileName */}}
+      {{- with .File }}
+        {{- $cookURL := printf "%srecipes/%s.cook" $.Site.BaseURL .BaseFileName -}}
+        <enclosure url="{{ $cookURL }}" type="text/plain"/>
+      {{- end }}
 
       <guid isPermaLink="true">{{ .Permalink }}</guid>
       <pubDate>{{ .Date.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</pubDate>
@@ -35,14 +37,17 @@
         {{ with .Params.servings }}
         <cooklang:servings>{{ . }}</cooklang:servings>
         {{ end }}
+
         {{ if or .Params.total_time .Params.prep_time }}
         <cooklang:time{{ with .Params.total_time }} total="{{ . }}"{{ end }}{{ with .Params.prep_time }} active="{{ . }}"{{ end }} units="minutes"/>
         {{ end }}
+
         {{ with .Params.tags }}
         <cooklang:tags>
           {{ range . }}<cooklang:tag>{{ . }}</cooklang:tag>{{ end }}
         </cooklang:tags>
         {{ end }}
+
         {{ with .Params.image }}
         <cooklang:image>{{ . }}</cooklang:image>
         {{ end }}
