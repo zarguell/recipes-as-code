@@ -1,0 +1,147 @@
+name: Deploy Hugo Site with Recipes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'recipes/**/*.cook'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      COOKCLI_VERSION: 0.19.0
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: 'latest'
+          extended: true
+      
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      
+      - name: Get Site URL
+        id: site-url
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_OUTPUT
+          else
+            echo "url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_OUTPUT
+          fi
+          echo "🔗 Site URL: ${{ steps.site-url.outputs.url }}"
+      
+      - name: Install CookCLI
+        run: |
+          wget -q "https://github.com/cooklang/cookcli/releases/download/v${COOKCLI_VERSION}/cook-x86_64-unknown-linux-gnu.tar.gz" -O cook.tar.gz
+          tar -xzf cook.tar.gz
+          sudo mv cook /usr/local/bin/
+          chmod +x /usr/local/bin/cook
+          cook --version
+      
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      
+      - name: Create output directories
+        run: |
+          mkdir -p content/recipes
+          mkdir -p static/recipes
+          mkdir -p static/schema-org
+          mkdir -p static/json
+      
+      - name: Export recipes to all formats
+        run: |
+          for recipe in recipes/*.cook; do
+            if [ -f "$recipe" ]; then
+              filename=$(basename "$recipe" .cook)
+              echo "📝 Exporting $filename..."
+              
+              # Hugo content (Markdown with front matter)
+              {
+                echo "---"
+                title=$(grep -m 1 "^title:" "$recipe" | sed 's/title: *//g' | xargs || echo "$filename")
+                echo "title: \"$title\""
+                echo "date: $(date -r "$recipe" -Iseconds)"
+                echo "draft: false"
+                echo "---"
+                echo ""
+                cook recipe "$recipe" -f markdown
+              } > "content/recipes/${filename}.md"
+              
+              # Schema.org JSON
+              if cook recipe "$recipe" -f schema --help 2>&1 | grep -q "schema"; then
+                cook recipe "$recipe" -f schema | jq '.' > "static/schema-org/${filename}.json"
+              else
+                cook recipe "$recipe" -f json | jq '.' > "static/schema-org/${filename}.json"
+              fi
+              
+              # JSON export
+              cook recipe "$recipe" -f json | jq '.' > "static/json/${filename}.json"
+              
+              # Copy raw .cook file
+              cp "$recipe" "static/recipes/${filename}.cook"
+            fi
+          done
+      
+      - name: Create recipe index
+        run: |
+          cat > content/recipes/_index.md << 'EOF'
+---
+title: "Recipe Collection"
+layout: list
+---
+
+Browse all recipes below or subscribe to the [RSS feed](/recipes/index.xml).
+EOF
+      
+      - name: Build Hugo Site
+        env:
+          HUGO_BASEURL: ${{ steps.site-url.outputs.url }}
+          HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
+          HUGO_ENVIRONMENT: production
+        run: |
+          echo "🏗️  Building Hugo site..."
+          echo "🔗 Using baseURL: ${HUGO_BASEURL}"
+          
+          # Update baseURL in config for current environment
+          sed -i.bak "s|baseURL = .*|baseURL = \"$HUGO_BASEURL\"|g" config.toml
+          
+          hugo --minify --baseURL "$HUGO_BASEURL"
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
