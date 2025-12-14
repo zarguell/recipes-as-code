@@ -56,8 +56,11 @@ function getStepText(items: any[]) {
   return items
     .map((item) => {
       if (item.type === "text") return item.value;
-      if (item.type === "ingredient") return item.displayName || "";
-      if (item.type === "cookware") return "[cookware]";
+      if (item.type === "ingredient") return item.displayName || item.name || "";
+      if (item.type === "cookware") {
+        // Cookware has a name field
+        return item.name || "cookware";
+      }
       if (item.type === "timer") {
         // Timer has a quantity object with value
         if (item.quantity?.value?.value) {
@@ -65,7 +68,7 @@ function getStepText(items: any[]) {
           const unit = item.unit || "minutes";
           return `${time} ${unit}`;
         }
-        return "[timer]";
+        return "timer";
       }
       return "";
     })
@@ -117,7 +120,7 @@ const jsonLd = {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-case=1" />
     <title>{recipe.metadata.title || slug}</title>
     <JsonLdSchema schema={jsonLd} />
     <style>
