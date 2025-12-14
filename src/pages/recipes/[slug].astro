@@ -32,23 +32,45 @@ try {
   recipe = {
     metadata: { title: slug },
     ingredients: [],
-    steps: [],
+    sections: [],
   };
 }
 
-// Debug what we got
-console.log(`Recipe ${slug}:`, JSON.stringify(recipe, null, 2));
-
 const ingredients = recipe.ingredients || [];
-const steps = recipe.steps || [];
 
-// Generate JSON-LD schema - fix the quantity mapping
+// Extract steps from ALL sections and flatten
+const steps = [];
+if (recipe.sections) {
+  for (const section of recipe.sections) {
+    if (section.content) {
+      const sectionSteps = section.content.filter((item: any) => item.type === "step");
+      steps.push(...sectionSteps);
+    }
+  }
+}
+
+// Helper to extract text from step items
+function getStepText(items: any[]) {
+  if (!items || items.length === 0) return "";
+  
+  return items
+    .map((item) => {
+      if (item.type === "text") return item.value;
+      if (item.type === "ingredient") return item.displayName || "";
+      if (item.type === "cookware") return "[cookware]";
+      if (item.type === "timer") return "[timer]";
+      return "";
+    })
+    .join("");
+}
+
+// Generate JSON-LD schema
 const jsonLd = {
   "@context": "https://schema.org/",
   "@type": "Recipe",
   name: recipe.metadata.title || slug,
   description: recipe.metadata.description || "",
-  image: recipe.metadata.image || null,
+  image: recipe.metadata.image?.replace(/^["']|["']$/g, '') || null,
   prepTime: recipe.metadata["prep-time"] ? `PT${recipe.metadata["prep-time"]}` : null,
   cookTime: recipe.metadata["cook-time"] ? `PT${recipe.metadata["cook-time"]}` : null,
   totalTime: recipe.metadata["total-time"] ? `PT${recipe.metadata["total-time"]}` : null,
@@ -62,18 +84,17 @@ const jsonLd = {
   },
   recipeIngredient: ingredients.map((ing) => {
     let str = ing.name || "";
-    if (ing.quantity) {
-      // quantity might be an object with value property
-      const qty = typeof ing.quantity === 'object' ? ing.quantity.value : ing.quantity;
+    if (ing.quantity?.value?.value !== undefined) {
+      const qty = ing.quantity.value.value;
       str += ` ${qty}`;
-      if (ing.units) str += ` ${ing.units}`;
+      if (ing.unit) str += ` ${ing.unit}`;
     }
     return str;
   }),
-  recipeInstructions: steps.map((step, idx) => ({
+  recipeInstructions: steps.map((step: any, idx: number) => ({
     "@type": "HowToStep",
     position: idx + 1,
-    text: step.text || step.value || String(step),
+    text: getStepText(step.items || []),
   })),
 };
 ---
@@ -152,14 +173,6 @@ const jsonLd = {
       a:hover {
         text-decoration: underline;
       }
-      .error {
-        background: #ffe5e5;
-        border: 1px solid #ff6b6b;
-        padding: 1rem;
-        margin: 1rem 0;
-        border-radius: 4px;
-        color: #d63031;
-      }
     </style>
   </head>
   <body>
@@ -175,12 +188,6 @@ const jsonLd = {
         />
       )}
     </div>
-
-    {parseError && (
-      <div class="error">
-        <strong>⚠️ Parse Error:</strong> {parseError}
-      </div>
-    )}
 
     <div class="recipe-meta">
       {recipe.metadata?.servings && (
@@ -212,18 +219,14 @@ const jsonLd = {
     <div class="recipe-content">
       <div class="recipe-section">
         <h2>🥘 Ingredients</h2>
-        {ingredients.length > 0 ? (
-          <IngredientList ingredients={ingredients} />
-        ) : (
-          <p>No ingredients parsed</p>
-        )}
+        <IngredientList ingredients={ingredients} />
       </div>
       <div class="recipe-section">
         <h2>👨‍🍳 Instructions</h2>
         {steps.length > 0 ? (
           <RecipeSteps steps={steps} />
         ) : (
-          <p>No steps parsed</p>
+          <p>No instructions found</p>
         )}
       </div>
     </div>

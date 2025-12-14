@@ -1,12 +1,27 @@
 ---
 const { steps } = Astro.props;
+
+// Helper to extract text from step items
+function getStepText(items: any[]) {
+  if (!items || items.length === 0) return "";
+  
+  return items
+    .map((item) => {
+      if (item.type === "text") return item.value;
+      if (item.type === "ingredient") return item.displayName || "";
+      if (item.type === "cookware") return "[cookware]";
+      if (item.type === "timer") return "[timer]";
+      return "";
+    })
+    .join("");
+}
 ---
 
 <ol class="steps">
   {steps.map((step: any, idx: number) => (
     <li class="step">
       <div class="step-number">{idx + 1}</div>
-      <div class="step-content">{step.text}</div>
+      <div class="step-content">{getStepText(step.items || [])}</div>
     </li>
   ))}
 </ol>
