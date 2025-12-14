@@ -150,40 +150,42 @@ recipes = recipes.sort((a, b) =>
       No recipes found. Try a different search.
     </div>
 
-    <script define:vars={{ recipes }}>
-      const searchBox = document.getElementById('searchBox');
-      const noResults = document.getElementById('noResults');
-      const recipeCards = document.querySelectorAll('.recipe-card');
+    <script>
+		const searchBox = document.getElementById('searchBox');
+		const noResults = document.getElementById('noResults');
+		const recipeCards = document.querySelectorAll('.recipe-card');
 
-      // Build searchable recipe data
-      const recipeData = recipes.map((recipe, idx) => ({
-        element: recipeCards[idx],
-        title: recipe.parsed.metadata.title?.toLowerCase() || recipe.slug.toLowerCase(),
-        tags: recipe.parsed.metadata.tags || [],
-        description: recipe.parsed.metadata.description?.toLowerCase() || '',
-      }));
+		// Search functionality using data attributes
+		searchBox.addEventListener('input', (e) => {
+			const search = e.target.value.toLowerCase().trim();
+			let visibleCount = 0;
+			
+			recipeCards.forEach(card => {
+			if (search === '') {
+				card.classList.remove('hidden');
+				visibleCount++;
+				return;
+			}
 
-      // Search functionality
-      searchBox.addEventListener('input', (e) => {
-        const search = e.target.value.toLowerCase().trim();
-        let visibleCount = 0;
-        
-        recipeData.forEach(recipe => {
-          const matches = search === '' || 
-            recipe.title.includes(search) || 
-            recipe.description.includes(search) ||
-            recipe.tags.some(tag => tag.toLowerCase().includes(search));
-          
-          if (matches) {
-            recipe.element.classList.remove('hidden');
-            visibleCount++;
-          } else {
-            recipe.element.classList.add('hidden');
-          }
-        });
+			const title = card.dataset.title || '';
+			const description = card.dataset.description || '';
+			const tags = card.dataset.tags || '';
+			
+			const matches = 
+				title.includes(search) || 
+				description.includes(search) ||
+				tags.includes(search);
+			
+			if (matches) {
+				card.classList.remove('hidden');
+				visibleCount++;
+			} else {
+				card.classList.add('hidden');
+			}
+			});
 
-        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
-      });
-    </script>
+			noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+		});
+	</script>
   </body>
 </html>
