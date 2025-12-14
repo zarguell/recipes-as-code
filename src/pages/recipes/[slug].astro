@@ -1,5 +1,5 @@
 ---
-import { readdir, readFile } from "fs/promises";
+import { readdir } from "fs/promises";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
@@ -22,25 +22,32 @@ const { slug } = Astro.params;
 const recipePath = resolve("recipes", `${slug}.cook`);
 const content = readFileSync(recipePath, "utf-8");
 const { data: frontmatter, content: cookContent } = matter(content);
+
+// Parse the recipe
 const recipe = new Recipe(cookContent);
+
+// The parser returns ingredients directly, but steps might be in a different structure
+// Let's debug and use the correct properties
+const ingredients = recipe.ingredients || [];
+const steps = recipe.instructions || recipe.steps || [];
 
 // Generate JSON-LD schema
 const jsonLd = {
   "@context": "https://schema.org/",
   "@type": "Recipe",
   name: frontmatter.title || slug,
-  description: frontmatter.description || recipe.metadata.description || "",
+  description: frontmatter.description || recipe.metadata?.description || "",
   image: frontmatter.image || null,
-  prepTime: recipe.metadata["prep_time"]
+  prepTime: recipe.metadata?.["prep_time"]
     ? `PT${recipe.metadata["prep_time"]}`
     : null,
-  cookTime: recipe.metadata["cook_time"]
+  cookTime: recipe.metadata?.["cook_time"]
     ? `PT${recipe.metadata["cook_time"]}`
     : null,
-  totalTime: recipe.metadata["total_time"]
+  totalTime: recipe.metadata?.["total_time"]
     ? `PT${recipe.metadata["total_time"]}`
     : null,
-  recipeYield: recipe.metadata.servings || null,
+  recipeYield: recipe.metadata?.servings || null,
   recipeCategory: frontmatter.category || null,
   recipeCuisine: frontmatter.cuisine || null,
   keywords: (frontmatter.tags || []).join(", "),
@@ -48,14 +55,14 @@ const jsonLd = {
     "@type": "Person",
     name: frontmatter.author || "Unknown",
   },
-  recipeIngredient: recipe.ingredients.map(
+  recipeIngredient: ingredients.map(
     (ing) =>
       `${ing.name}${ing.quantity ? ` ${ing.quantity}${ing.unit || ""}` : ""}`
   ),
-  recipeInstructions: recipe.steps.map((step, idx) => ({
+  recipeInstructions: steps.map((step, idx) => ({
     "@type": "HowToStep",
     position: idx + 1,
-    text: step.content || step.value,
+    text: step.content || step.value || String(step),
   })),
 };
 ---
@@ -151,25 +158,25 @@ const jsonLd = {
     </div>
 
     <div class="recipe-meta">
-      {recipe.metadata.servings && (
+      {recipe.metadata?.servings && (
         <div class="meta-item">
           <div class="meta-label">Servings</div>
           <div class="meta-value">{recipe.metadata.servings}</div>
         </div>
       )}
-      {recipe.metadata["prep_time"] && (
+      {recipe.metadata?.["prep_time"] && (
         <div class="meta-item">
           <div class="meta-label">Prep Time</div>
           <div class="meta-value">{recipe.metadata["prep_time"]}</div>
         </div>
       )}
-      {recipe.metadata["cook_time"] && (
+      {recipe.metadata?.["cook_time"] && (
         <div class="meta-item">
           <div class="meta-label">Cook Time</div>
           <div class="meta-value">{recipe.metadata["cook_time"]}</div>
         </div>
       )}
-      {recipe.metadata["total_time"] && (
+      {recipe.metadata?.["total_time"] && (
         <div class="meta-item">
           <div class="meta-label">Total Time</div>
           <div class="meta-value">{recipe.metadata["total_time"]}</div>
@@ -180,11 +187,11 @@ const jsonLd = {
     <div class="recipe-content">
       <div class="recipe-section">
         <h2>🥘 Ingredients</h2>
-        <IngredientList ingredients={recipe.ingredients} />
+        <IngredientList ingredients={ingredients} />
       </div>
       <div class="recipe-section">
         <h2>👨‍🍳 Instructions</h2>
-        <RecipeSteps steps={recipe.steps} />
+        <RecipeSteps steps={steps} />
       </div>
     </div>
   </body>

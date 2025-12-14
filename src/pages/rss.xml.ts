@@ -1,5 +1,5 @@
-import rss, { pagesGlobToRssItems } from "@astrojs/rss";
-import { readdir, readFile } from "fs/promises";
+import rss from "@astrojs/rss";
+import { readdir } from "fs/promises";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
@@ -19,21 +19,20 @@ export async function GET(context: any) {
 
       return {
         title: frontmatter.title || slug,
-        description: frontmatter.description || recipe.metadata.description || "",
+        description: frontmatter.description || recipe.metadata?.description || "",
         link: `/recipes/${slug}/`,
         pubDate: new Date(frontmatter.date || Date.now()),
         // CookLang Federation extensions
-        // These are custom extensions for the federation to discover recipes
         customData: `
-          <cooklang:recipe>
-            <cooklang:name>${frontmatter.title || slug}</cooklang:name>
-            <cooklang:url>https://yoursite.com/recipes/${slug}/</cooklang:url>
-            <cooklang:image>${frontmatter.image || ""}</cooklang:image>
-            <cooklang:servings>${recipe.metadata.servings || ""}</cooklang:servings>
-            <cooklang:cook_time>${recipe.metadata["cook_time"] || ""}</cooklang:cook_time>
-            <cooklang:prep_time>${recipe.metadata["prep_time"] || ""}</cooklang:prep_time>
-            <cooklang:total_time>${recipe.metadata["total_time"] || ""}</cooklang:total_time>
-            <cooklang:raw-url>https://yoursite.com/recipes/${slug}.cook</cooklang:raw-url>
+          oklang:recipe>
+            oklang:name>${frontmatter.title || slug}</cooklang:name>
+            oklang:url>https://yoursite.com/recipes/${slug}/</cooklang:url>
+            oklang:image>${frontmatter.image || ""}</cooklang:image>
+            oklang:servings>${recipe.metadata?.servings || ""}</cooklang:servings>
+            oklang:cook_time>${recipe.metadata?.["cook_time"] || ""}</cooklang:cook_time>
+            oklang:prep_time>${recipe.metadata?.["prep_time"] || ""}</cooklang:prep_time>
+            oklang:total_time>${recipe.metadata?.["total_time"] || ""}</cooklang:total_time>
+            oklang:raw-url>https://yoursite.com/recipes/${slug}.cook</cooklang:raw-url>
           </cooklang:recipe>
         `,
       };
@@ -47,9 +46,9 @@ export async function GET(context: any) {
     items,
     customData: `
       <language>en-us</language>
-      <cooklang:federation>
-        <cooklang:name>My Recipe Site</cooklang:name>
-        <cooklang:description>A collection of delicious recipes</cooklang:description>
+      oklang:federation>
+        oklang:name>My Recipe Site</cooklang:name>
+        oklang:description>A collection of delicious recipes</cooklang:description>
       </cooklang:federation>
     `,
   });
