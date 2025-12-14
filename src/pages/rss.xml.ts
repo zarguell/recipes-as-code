@@ -28,9 +28,9 @@ export async function GET(context: any) {
           `  oklang:url>${siteUrl}/recipes/${slug}/</cooklang:url>`,
           `  oklang:image>${escapeXml(recipe.metadata.image || "")}</cooklang:image>`,
           `  oklang:servings>${escapeXml(recipe.metadata.servings || "")}</cooklang:servings>`,
-          `  oklang:cook_time>${escapeXml(recipe.metadata["cook_time"] || "")}</cooklang:cook_time>`,
-          `  oklang:prep_time>${escapeXml(recipe.metadata["prep_time"] || "")}</cooklang:prep_time>`,
-          `  oklang:total_time>${escapeXml(recipe.metadata["total_time"] || "")}</cooklang:total_time>`,
+          `  oklang:cook-time>${escapeXml(recipe.metadata["cook-time"] || "")}</cooklang:cook-time>`,
+          `  oklang:prep-time>${escapeXml(recipe.metadata["prep-time"] || "")}</cooklang:prep-time>`,
+          `  oklang:total-time>${escapeXml(recipe.metadata["total-time"] || "")}</cooklang:total-time>`,
           `  oklang:raw-url>${siteUrl}/recipes/${slug}.cook</cooklang:raw-url>`,
           `</cooklang:recipe>`
         ].join('\n'),

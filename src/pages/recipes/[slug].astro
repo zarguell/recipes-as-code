@@ -35,9 +35,9 @@ const jsonLd = {
   name: recipe.metadata.title || slug,
   description: recipe.metadata.description || "",
   image: recipe.metadata.image || null,
-  prepTime: recipe.metadata["prep_time"] ? `PT${recipe.metadata["prep_time"]}` : null,
-  cookTime: recipe.metadata["cook_time"] ? `PT${recipe.metadata["cook_time"]}` : null,
-  totalTime: recipe.metadata["total_time"] ? `PT${recipe.metadata["total_time"]}` : null,
+  prepTime: recipe.metadata["prep-time"] ? `PT${recipe.metadata["prep-time"]}` : null,
+  cookTime: recipe.metadata["cook-time"] ? `PT${recipe.metadata["cook-time"]}` : null,
+  totalTime: recipe.metadata["total-time"] ? `PT${recipe.metadata["total-time"]}` : null,
   recipeYield: recipe.metadata.servings || null,
   recipeCategory: recipe.metadata.category || null,
   recipeCuisine: recipe.metadata.cuisine || null,
@@ -154,22 +154,22 @@ const jsonLd = {
           <div class="meta-value">{recipe.metadata.servings}</div>
         </div>
       )}
-      {recipe.metadata["prep_time"] && (
+      {recipe.metadata["prep-time"] && (
         <div class="meta-item">
           <div class="meta-label">Prep Time</div>
-          <div class="meta-value">{recipe.metadata["prep_time"]}</div>
+          <div class="meta-value">{recipe.metadata["prep-time"]}</div>
         </div>
       )}
-      {recipe.metadata["cook_time"] && (
+      {recipe.metadata["cook-time"] && (
         <div class="meta-item">
           <div class="meta-label">Cook Time</div>
-          <div class="meta-value">{recipe.metadata["cook_time"]}</div>
+          <div class="meta-value">{recipe.metadata["cook-time"]}</div>
         </div>
       )}
-      {recipe.metadata["total_time"] && (
+      {recipe.metadata["total-time"] && (
         <div class="meta-item">
           <div class="meta-label">Total Time</div>
-          <div class="meta-value">{recipe.metadata["total_time"]}</div>
+          <div class="meta-value">{recipe.metadata["total-time"]}</div>
         </div>
       )}
     </div>
