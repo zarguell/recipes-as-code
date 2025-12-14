@@ -12,28 +12,26 @@ export async function GET(context: any) {
   const items = await Promise.all(
     cookFiles.map(async (file) => {
       const content = readFileSync(resolve(recipesDir, file), "utf-8");
-      const recipe = new Recipe(content);
-      const slug = file.replace(".cook", "");
+      let recipe;
       
-      const siteUrl = context.site || "https://zarguell.github.io";
+      try {
+        recipe = new Recipe(content);
+      } catch (error) {
+        console.error(`Error parsing ${file}:`, error.message);
+        recipe = {
+          metadata: { title: file.replace(".cook", "") },
+          ingredients: [],
+          steps: [],
+        };
+      }
+      
+      const slug = file.replace(".cook", "");
 
       return {
         title: recipe.metadata.title || slug,
         description: recipe.metadata.description || "",
         link: `/recipes/${slug}/`,
         pubDate: new Date(recipe.metadata.date || Date.now()),
-        customData: [
-          `oklang:recipe xmlns:cooklang="https://cooklang.org/ns/federation">`,
-          `  oklang:name>${escapeXml(recipe.metadata.title || slug)}</cooklang:name>`,
-          `  oklang:url>${siteUrl}/recipes/${slug}/</cooklang:url>`,
-          `  oklang:image>${escapeXml(recipe.metadata.image || "")}</cooklang:image>`,
-          `  oklang:servings>${escapeXml(recipe.metadata.servings || "")}</cooklang:servings>`,
-          `  oklang:cook-time>${escapeXml(recipe.metadata["cook-time"] || "")}</cooklang:cook-time>`,
-          `  oklang:prep-time>${escapeXml(recipe.metadata["prep-time"] || "")}</cooklang:prep-time>`,
-          `  oklang:total-time>${escapeXml(recipe.metadata["total-time"] || "")}</cooklang:total-time>`,
-          `  oklang:raw-url>${siteUrl}/recipes/${slug}.cook</cooklang:raw-url>`,
-          `</cooklang:recipe>`
-        ].join('\n'),
       };
     })
   );
@@ -43,18 +41,5 @@ export async function GET(context: any) {
     description: "A collection of recipes",
     site: context.site || "https://zarguell.github.io",
     items,
-    xmlns: {
-      cooklang: "https://cooklang.org/ns/federation",
-    },
   });
-}
-
-function escapeXml(unsafe: string): string {
-  if (!unsafe) return "";
-  return String(unsafe)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }

@@ -3,7 +3,7 @@ const { recipe } = Astro.props;
 const title = recipe.parsed.metadata.title || recipe.slug;
 ---
 
-<a href={`/recipes/${recipe.slug}/`} class="recipe-card">
+<a href={`${import.meta.env.BASE_URL}recipes/${recipe.slug}/`} class="recipe-card">
   {recipe.parsed.metadata.image && (
     <div class="recipe-image">
       <img src={recipe.parsed.metadata.image} alt={title} />
@@ -26,6 +26,7 @@ const title = recipe.parsed.metadata.title || recipe.slug;
 </a>
 
 <style>
+  /* same styles as before */
   .recipe-card {
     display: block;
     background: white;

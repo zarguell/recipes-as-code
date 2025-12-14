@@ -135,7 +135,7 @@ const jsonLd = {
   </head>
   <body>
     <div class="recipe-header">
-      <a href="/">← Back to recipes</a>
+      <a href={import.meta.env.BASE_URL}>← Back to recipes</a>
       <h1>{recipe.metadata.title || slug}</h1>
       {recipe.metadata.description && <p>{recipe.metadata.description}</p>}
       {recipe.metadata.image && (
