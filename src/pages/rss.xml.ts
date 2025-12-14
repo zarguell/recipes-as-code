@@ -37,7 +37,7 @@ export async function GET() {
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
-  hannel>
+  <channel>
     <title>My Recipes</title>
     <description>A collection of recipes in CookLang format</description>
     <link>https://zarguell.github.io/recipes-as-code/</link>
