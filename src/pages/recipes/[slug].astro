@@ -169,7 +169,7 @@ const jsonLd = {
       {recipe.metadata.description && <p>{recipe.metadata.description}</p>}
       {recipe.metadata.image && (
         <img
-          src={recipe.metadata.image}
+          src={recipe.metadata.image.replace(/^["']|["']$/g, '')}
           alt={recipe.metadata.title || slug}
           class="recipe-image"
         />
