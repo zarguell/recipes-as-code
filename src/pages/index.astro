@@ -111,13 +111,17 @@ recipes = recipes.sort((a, b) =>
         gap: 2rem;
       }
       .recipe-card.hidden {
-        display: none;
+        display: none !important;
       }
       .no-results {
         text-align: center;
         color: #636e72;
         padding: 3rem;
         font-size: 1.1rem;
+        display: none;
+      }
+      .no-results.show {
+        display: block;
       }
     </style>
   </head>
@@ -146,46 +150,49 @@ recipes = recipes.sort((a, b) =>
       {recipes.map((recipe) => <RecipeCard recipe={recipe} />)}
     </div>
 
-    <div class="no-results" id="noResults" style="display: none;">
+    <div class="no-results" id="noResults">
       No recipes found. Try a different search.
     </div>
 
     <script>
-		const searchBox = document.getElementById('searchBox');
-		const noResults = document.getElementById('noResults');
-		const recipeCards = document.querySelectorAll('.recipe-card');
+      const searchBox = document.getElementById('searchBox');
+      const noResults = document.getElementById('noResults');
+      const recipeCards = document.querySelectorAll('.recipe-card');
 
-		// Search functionality using data attributes
-		searchBox.addEventListener('input', (e) => {
-			const search = e.target.value.toLowerCase().trim();
-			let visibleCount = 0;
-			
-			recipeCards.forEach(card => {
-			if (search === '') {
-				card.classList.remove('hidden');
-				visibleCount++;
-				return;
-			}
+      searchBox.addEventListener('input', (e) => {
+        const search = e.target.value.toLowerCase().trim();
+        let visibleCount = 0;
+        
+        recipeCards.forEach(card => {
+          if (search === '') {
+            card.classList.remove('hidden');
+            visibleCount++;
+            return;
+          }
 
-			const title = card.dataset.title || '';
-			const description = card.dataset.description || '';
-			const tags = card.dataset.tags || '';
-			
-			const matches = 
-				title.includes(search) || 
-				description.includes(search) ||
-				tags.includes(search);
-			
-			if (matches) {
-				card.classList.remove('hidden');
-				visibleCount++;
-			} else {
-				card.classList.add('hidden');
-			}
-			});
+          const title = (card.dataset.title || '').toLowerCase();
+          const description = (card.dataset.description || '').toLowerCase();
+          const tags = (card.dataset.tags || '').toLowerCase();
+          
+          const matches = 
+            title.includes(search) || 
+            description.includes(search) ||
+            tags.includes(search);
+          
+          if (matches) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
 
-			noResults.style.display = visibleCount === 0 ? 'block' : 'none';
-		});
-	</script>
+        if (visibleCount === 0) {
+          noResults.classList.add('show');
+        } else {
+          noResults.classList.remove('show');
+        }
+      });
+    </script>
   </body>
 </html>
