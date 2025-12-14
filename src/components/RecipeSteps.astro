@@ -6,7 +6,7 @@ const { steps } = Astro.props;
   {steps.map((step: any, idx: number) => (
     <li class="step">
       <div class="step-number">{idx + 1}</div>
-      <div class="step-content">{step.content || step.value}</div>
+      <div class="step-content">{step.text}</div>
     </li>
   ))}
 </ol>

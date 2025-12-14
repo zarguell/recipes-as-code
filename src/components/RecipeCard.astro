@@ -1,18 +1,18 @@
 ---
 const { recipe } = Astro.props;
-const title = recipe.frontmatter.title || recipe.slug;
+const title = recipe.parsed.metadata.title || recipe.slug;
 ---
 
 <a href={`/recipes/${recipe.slug}/`} class="recipe-card">
-  {recipe.frontmatter.image && (
+  {recipe.parsed.metadata.image && (
     <div class="recipe-image">
-      <img src={recipe.frontmatter.image} alt={title} />
+      <img src={recipe.parsed.metadata.image} alt={title} />
     </div>
   )}
   <div class="recipe-info">
     <h3>{title}</h3>
-    {recipe.frontmatter.description && (
-      <p class="description">{recipe.frontmatter.description}</p>
+    {recipe.parsed.metadata.description && (
+      <p class="description">{recipe.parsed.metadata.description}</p>
     )}
     <div class="recipe-stats">
       {recipe.parsed.metadata.servings && (

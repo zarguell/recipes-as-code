@@ -3,7 +3,6 @@ import { readdir } from "fs/promises";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
-import matter from "gray-matter";
 import JsonLdSchema from "../../components/JsonLdSchema.astro";
 import IngredientList from "../../components/IngredientList.astro";
 import RecipeSteps from "../../components/RecipeSteps.astro";
@@ -21,48 +20,39 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 const recipePath = resolve("recipes", `${slug}.cook`);
 const content = readFileSync(recipePath, "utf-8");
-const { data: frontmatter, content: cookContent } = matter(content);
 
-// Parse the recipe
-const recipe = new Recipe(cookContent);
+// Parse the ENTIRE file - the Recipe class handles frontmatter itself
+const recipe = new Recipe(content);
 
-// The parser returns ingredients directly, but steps might be in a different structure
-// Let's debug and use the correct properties
+// Now we have everything!
 const ingredients = recipe.ingredients || [];
-const steps = recipe.instructions || recipe.steps || [];
+const steps = recipe.steps || [];
 
 // Generate JSON-LD schema
 const jsonLd = {
   "@context": "https://schema.org/",
   "@type": "Recipe",
-  name: frontmatter.title || slug,
-  description: frontmatter.description || recipe.metadata?.description || "",
-  image: frontmatter.image || null,
-  prepTime: recipe.metadata?.["prep_time"]
-    ? `PT${recipe.metadata["prep_time"]}`
-    : null,
-  cookTime: recipe.metadata?.["cook_time"]
-    ? `PT${recipe.metadata["cook_time"]}`
-    : null,
-  totalTime: recipe.metadata?.["total_time"]
-    ? `PT${recipe.metadata["total_time"]}`
-    : null,
-  recipeYield: recipe.metadata?.servings || null,
-  recipeCategory: frontmatter.category || null,
-  recipeCuisine: frontmatter.cuisine || null,
-  keywords: (frontmatter.tags || []).join(", "),
+  name: recipe.metadata.title || slug,
+  description: recipe.metadata.description || "",
+  image: recipe.metadata.image || null,
+  prepTime: recipe.metadata["prep_time"] ? `PT${recipe.metadata["prep_time"]}` : null,
+  cookTime: recipe.metadata["cook_time"] ? `PT${recipe.metadata["cook_time"]}` : null,
+  totalTime: recipe.metadata["total_time"] ? `PT${recipe.metadata["total_time"]}` : null,
+  recipeYield: recipe.metadata.servings || null,
+  recipeCategory: recipe.metadata.category || null,
+  recipeCuisine: recipe.metadata.cuisine || null,
+  keywords: (recipe.metadata.tags || []).join(", "),
   author: {
     "@type": "Person",
-    name: frontmatter.author || "Unknown",
+    name: recipe.metadata.author || "Unknown",
   },
   recipeIngredient: ingredients.map(
-    (ing) =>
-      `${ing.name}${ing.quantity ? ` ${ing.quantity}${ing.unit || ""}` : ""}`
+    (ing) => `${ing.name}${ing.quantity ? ` ${ing.quantity} ${ing.units || ""}` : ""}`
   ),
   recipeInstructions: steps.map((step, idx) => ({
     "@type": "HowToStep",
     position: idx + 1,
-    text: step.content || step.value || String(step),
+    text: step.text,
   })),
 };
 ---
@@ -71,7 +61,7 @@ const jsonLd = {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{frontmatter.title || slug}</title>
+    <title>{recipe.metadata.title || slug}</title>
     <JsonLdSchema schema={jsonLd} />
     <style>
       body {
@@ -146,37 +136,37 @@ const jsonLd = {
   <body>
     <div class="recipe-header">
       <a href="/">← Back to recipes</a>
-      <h1>{frontmatter.title || slug}</h1>
-      {frontmatter.description && <p>{frontmatter.description}</p>}
-      {frontmatter.image && (
+      <h1>{recipe.metadata.title || slug}</h1>
+      {recipe.metadata.description && <p>{recipe.metadata.description}</p>}
+      {recipe.metadata.image && (
         <img
-          src={frontmatter.image}
-          alt={frontmatter.title || slug}
+          src={recipe.metadata.image}
+          alt={recipe.metadata.title || slug}
           class="recipe-image"
         />
       )}
     </div>
 
     <div class="recipe-meta">
-      {recipe.metadata?.servings && (
+      {recipe.metadata.servings && (
         <div class="meta-item">
           <div class="meta-label">Servings</div>
           <div class="meta-value">{recipe.metadata.servings}</div>
         </div>
       )}
-      {recipe.metadata?.["prep_time"] && (
+      {recipe.metadata["prep_time"] && (
         <div class="meta-item">
           <div class="meta-label">Prep Time</div>
           <div class="meta-value">{recipe.metadata["prep_time"]}</div>
         </div>
       )}
-      {recipe.metadata?.["cook_time"] && (
+      {recipe.metadata["cook_time"] && (
         <div class="meta-item">
           <div class="meta-label">Cook Time</div>
           <div class="meta-value">{recipe.metadata["cook_time"]}</div>
         </div>
       )}
-      {recipe.metadata?.["total_time"] && (
+      {recipe.metadata["total_time"] && (
         <div class="meta-item">
           <div class="meta-label">Total Time</div>
           <div class="meta-value">{recipe.metadata["total_time"]}</div>
