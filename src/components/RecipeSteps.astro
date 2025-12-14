@@ -1,26 +1,49 @@
 ---
 const { steps } = Astro.props;
 
+// Debug: log the first step's items to see structure
+if (steps.length > 0 && steps[0].items) {
+  console.log("=== DEBUG: First step items ===");
+  console.log(JSON.stringify(steps[0].items, null, 2));
+}
+
 // Helper to extract text from step items
 function getStepText(items: any[]) {
   if (!items || items.length === 0) return "";
   
   return items
     .map((item) => {
-      if (item.type === "text") return item.value;
-      if (item.type === "ingredient") return item.displayName || item.name || "";
+      if (item.type === "text") {
+        return item.value;
+      }
+      if (item.type === "ingredient") {
+        return item.displayName || item.name || "";
+      }
       if (item.type === "cookware") {
-        // Cookware has a name field
-        return item.name || "cookware";
+        // Try different possible properties
+        const name = item.name || item.displayName || item.value?.name || "cookware";
+        return `<code class="cookware">${name}</code>`;
       }
       if (item.type === "timer") {
-        // Timer has a quantity object with value
-        if (item.quantity?.value?.value) {
-          const time = item.quantity.value.value;
-          const unit = item.unit || "minutes";
-          return `${time} ${unit}`;
+        // Try to extract timer value from different possible structures
+        let time = "";
+        let unit = "";
+        
+        if (item.quantity?.value?.value !== undefined) {
+          time = item.quantity.value.value;
+          unit = item.unit || item.quantity.unit || "minutes";
+        } else if (item.value?.value !== undefined) {
+          time = item.value.value;
+          unit = item.value.unit || "minutes";
+        } else if (item.duration) {
+          time = item.duration;
+          unit = item.unit || "minutes";
         }
-        return "timer";
+        
+        if (time) {
+          return `<code class="timer">⏱️ ${time} ${unit}</code>`;
+        }
+        return `<code class="timer">timer</code>`;
       }
       return "";
     })
@@ -32,7 +55,7 @@ function getStepText(items: any[]) {
   {steps.map((step: any, idx: number) => (
     <li class="step">
       <div class="step-number">{idx + 1}</div>
-      <div class="step-content">{getStepText(step.items || [])}</div>
+      <div class="step-content" set:html={getStepText(step.items || [])} />
     </li>
   ))}
 </ol>
@@ -66,5 +89,27 @@ function getStepText(items: any[]) {
   .step-content {
     padding-top: 0.25rem;
     color: #2d3436;
+    line-height: 1.6;
+  }
+
+  .step-content :global(code) {
+    background: #f8f9fa;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+    border: 1px solid #e9ecef;
+  }
+
+  .step-content :global(code.cookware) {
+    background: #e3f2fd;
+    color: #1976d2;
+    border-color: #bbdefb;
+  }
+
+  .step-content :global(code.timer) {
+    background: #fff3e0;
+    color: #e65100;
+    border-color: #ffcc80;
   }
 </style>
