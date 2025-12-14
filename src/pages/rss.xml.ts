@@ -35,20 +35,13 @@ export async function GET() {
       <title>${escapeXml(title)}</title>
       <description>${escapeXml(description)}</description>
       <link>https://zarguell.github.io/recipes-as-code/recipes/${slug}/</link>
-      <guid>https://zarguell.github.io/recipes-as-code/recipes/${slug}/</guid>
+      <guid isPermaLink="true">https://zarguell.github.io/recipes-as-code/recipes/${slug}/</guid>
       <pubDate>${pubDate}</pubDate>
-      oklang:name>${escapeXml(title)}</cooklang:name>
-      oklang:image>${escapeXml(image)}</cooklang:image>
-      oklang:servings>${escapeXml(String(servings))}</cooklang:servings>
-      oklang:prep-time>${escapeXml(prepTime)}</cooklang:prep-time>
-      oklang:cook-time>${escapeXml(cookTime)}</cooklang:cook-time>
-      oklang:total-time>${escapeXml(totalTime)}</cooklang:total-time>
-      oklang:raw-url>https://zarguell.github.io/recipes-as-code/recipes/${slug}.cook</cooklang:raw-url>
     </item>`);
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:cooklang="https://cooklang.org/ns/federation">
+<rss version="2.0">
   hannel>
     <title>My Recipes</title>
     <description>A collection of recipes in CookLang format</description>
