@@ -39,14 +39,6 @@ let recipes = await Promise.all(
 recipes = recipes.sort((a, b) =>
   (a.parsed.metadata.title || a.slug).localeCompare(b.parsed.metadata.title || b.slug)
 );
-
-// Get all unique tags
-const allTags = new Set();
-recipes.forEach(recipe => {
-  const tags = recipe.parsed.metadata.tags || [];
-  tags.forEach(tag => allTags.add(tag));
-});
-const sortedTags = Array.from(allTags).sort();
 ---
 
 <html lang="en">
@@ -74,7 +66,11 @@ const sortedTags = Array.from(allTags).sort();
         color: #2d3436;
         margin: 0;
       }
-      .rss-button {
+      .header-buttons {
+        display: flex;
+        gap: 1rem;
+      }
+      .button {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
@@ -86,8 +82,14 @@ const sortedTags = Array.from(allTags).sort();
         font-weight: bold;
         transition: background 0.2s;
       }
-      .rss-button:hover {
+      .button:hover {
         background: #ee5a52;
+      }
+      .button.secondary {
+        background: #0984e3;
+      }
+      .button.secondary:hover {
+        background: #0770c9;
       }
       .search-box {
         width: 100%;
@@ -96,43 +98,12 @@ const sortedTags = Array.from(allTags).sort();
         border: 2px solid #dfe6e9;
         border-radius: 8px;
         font-size: 1rem;
+        margin-bottom: 2rem;
         transition: border-color 0.2s;
       }
       .search-box:focus {
         outline: none;
         border-color: #ff6b6b;
-      }
-      .filter-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-bottom: 2rem;
-      }
-      .filter-tag {
-        background: #e3f2fd;
-        color: #1976d2;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.2s;
-      }
-      .filter-tag:hover {
-        background: #bbdefb;
-      }
-      .filter-tag.active {
-        background: #1976d2;
-        color: white;
-        border-color: #1565c0;
-      }
-      .filter-tag.all {
-        background: #fafafa;
-        color: #636e72;
-      }
-      .filter-tag.all.active {
-        background: #2d3436;
-        color: white;
       }
       .recipe-grid {
         display: grid;
@@ -153,9 +124,14 @@ const sortedTags = Array.from(allTags).sort();
   <body>
     <div class="header">
       <h1>🍳 My Recipes</h1>
-      <a href={`${import.meta.env.BASE_URL}rss.xml`} class="rss-button" target="_blank">
-        📡 RSS Feed
-      </a>
+      <div class="header-buttons">
+        <a href={`${import.meta.env.BASE_URL}tags/`} class="button secondary">
+          🏷️ Browse Tags
+        </a>
+        <a href={`${import.meta.env.BASE_URL}rss.xml`} class="button" target="_blank">
+          📡 RSS Feed
+        </a>
+      </div>
     </div>
 
     <input 
@@ -166,30 +142,18 @@ const sortedTags = Array.from(allTags).sort();
       autocomplete="off"
     />
 
-    <div class="filter-tags">
-      <button class="filter-tag all active" data-tag="all">All Recipes</button>
-      {sortedTags.map((tag: string) => (
-        <button class="filter-tag" data-tag={tag}>#{tag}</button>
-      ))}
-    </div>
-
     <div class="recipe-grid" id="recipeGrid">
       {recipes.map((recipe) => <RecipeCard recipe={recipe} />)}
     </div>
 
     <div class="no-results" id="noResults" style="display: none;">
-      No recipes found. Try a different search or tag.
+      No recipes found. Try a different search.
     </div>
 
     <script define:vars={{ recipes }}>
       const searchBox = document.getElementById('searchBox');
-      const recipeGrid = document.getElementById('recipeGrid');
       const noResults = document.getElementById('noResults');
       const recipeCards = document.querySelectorAll('.recipe-card');
-      const filterTags = document.querySelectorAll('.filter-tag');
-      
-      let currentTag = 'all';
-      let currentSearch = '';
 
       // Build searchable recipe data
       const recipeData = recipes.map((recipe, idx) => ({
@@ -199,17 +163,18 @@ const sortedTags = Array.from(allTags).sort();
         description: recipe.parsed.metadata.description?.toLowerCase() || '',
       }));
 
-      function filterRecipes() {
+      // Search functionality
+      searchBox.addEventListener('input', (e) => {
+        const search = e.target.value.toLowerCase().trim();
         let visibleCount = 0;
         
         recipeData.forEach(recipe => {
-          const matchesTag = currentTag === 'all' || recipe.tags.includes(currentTag);
-          const matchesSearch = currentSearch === '' || 
-            recipe.title.includes(currentSearch) || 
-            recipe.description.includes(currentSearch) ||
-            recipe.tags.some(tag => tag.toLowerCase().includes(currentSearch));
+          const matches = search === '' || 
+            recipe.title.includes(search) || 
+            recipe.description.includes(search) ||
+            recipe.tags.some(tag => tag.toLowerCase().includes(search));
           
-          if (matchesTag && matchesSearch) {
+          if (matches) {
             recipe.element.classList.remove('hidden');
             visibleCount++;
           } else {
@@ -218,22 +183,6 @@ const sortedTags = Array.from(allTags).sort();
         });
 
         noResults.style.display = visibleCount === 0 ? 'block' : 'none';
-      }
-
-      // Search functionality
-      searchBox.addEventListener('input', (e) => {
-        currentSearch = e.target.value.toLowerCase().trim();
-        filterRecipes();
-      });
-
-      // Tag filtering
-      filterTags.forEach(button => {
-        button.addEventListener('click', () => {
-          filterTags.forEach(btn => btn.classList.remove('active'));
-          button.classList.add('active');
-          currentTag = button.dataset.tag;
-          filterRecipes();
-        });
       });
     </script>
   </body>

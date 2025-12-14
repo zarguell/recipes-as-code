@@ -24,11 +24,6 @@ export async function GET() {
     
     const title = recipe.metadata.title || slug;
     const description = recipe.metadata.description || "";
-    const image = recipe.metadata.image?.replace(/^["']|["']$/g, '') || "";
-    const servings = recipe.metadata.servings || "";
-    const prepTime = recipe.metadata["prep-time"] || "";
-    const cookTime = recipe.metadata["cook-time"] || "";
-    const totalTime = recipe.metadata["total-time"] || "";
     const pubDate = recipe.metadata.date ? new Date(recipe.metadata.date).toUTCString() : new Date().toUTCString();
     
     items.push(`    <item>

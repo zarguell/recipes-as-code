@@ -1,0 +1,116 @@
+---
+import { readdir } from "fs/promises";
+import { resolve } from "path";
+import { readFileSync } from "fs";
+import { Recipe } from "@tmlmt/cooklang-parser";
+
+const recipesDir = resolve("recipes");
+const files = await readdir(recipesDir);
+const cookFiles = files.filter((f) => f.endsWith(".cook"));
+
+const recipes = await Promise.all(
+  cookFiles.map(async (file) => {
+    const content = readFileSync(resolve(recipesDir, file), "utf-8");
+    let recipe;
+    
+    try {
+      recipe = new Recipe(content);
+    } catch (error) {
+      recipe = { metadata: { title: file.replace(".cook", ""), tags: [] } };
+    }
+
+    return {
+      slug: file.replace(".cook", ""),
+      parsed: recipe,
+    };
+  })
+);
+
+// Count recipes per tag
+const tagMap = new Map();
+recipes.forEach(recipe => {
+  const tags = recipe.parsed.metadata.tags || [];
+  tags.forEach(tag => {
+    if (!tagMap.has(tag)) {
+      tagMap.set(tag, 0);
+    }
+    tagMap.set(tag, tagMap.get(tag) + 1);
+  });
+});
+
+// Sort tags alphabetically
+const sortedTags = Array.from(tagMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browse by Tag</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #faf9f7;
+      }
+      h1 {
+        color: #2d3436;
+        margin-bottom: 2rem;
+      }
+      a.back-link {
+        color: #0984e3;
+        text-decoration: none;
+        margin-bottom: 1rem;
+        display: inline-block;
+      }
+      a.back-link:hover {
+        text-decoration: underline;
+      }
+      .tags-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+      .tag-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-left: 4px solid #1976d2;
+      }
+      .tag-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      .tag-name {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #1976d2;
+        margin-bottom: 0.5rem;
+      }
+      .tag-count {
+        color: #636e72;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <a href={import.meta.env.BASE_URL} class="back-link">← Back to all recipes</a>
+    <h1>🏷️ Browse by Tag</h1>
+    
+    <div class="tags-grid">
+      {sortedTags.map(([tag, count]) => (
+        <a href={`${import.meta.env.BASE_URL}tags/${tag}/`} class="tag-card">
+          <div class="tag-name">#{tag}</div>
+          <div class="tag-count">{count} {count === 1 ? 'recipe' : 'recipes'}</div>
+        </a>
+      ))}
+    </div>
+  </body>
+</html>
