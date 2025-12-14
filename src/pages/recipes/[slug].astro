@@ -239,7 +239,7 @@ const defaultImage = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
         src={imageUrl || defaultImage}
         alt={recipe.metadata.title || slug}
         class="recipe-image"
-        onerror={`this.onerror=null; this.src='${defaultImage}';`}
+        onerror={`this.onerror=null;this.src="${defaultImage.replace(/'/g, '%27')}";`}
         loading="lazy"
       />
     </div>

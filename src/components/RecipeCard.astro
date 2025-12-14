@@ -5,8 +5,8 @@ const description = recipe.parsed.metadata.description || "";
 const tags = recipe.parsed.metadata.tags || [];
 const imageUrl = recipe.parsed.metadata.image?.replace(/^["']|["']$/g, '') || null;
 
-// Default placeholder SVG
-const defaultImage = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E`;
+// Default placeholder SVG with properly escaped quotes
+const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
 ---
 
 <a 
@@ -20,7 +20,7 @@ const defaultImage = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
     <img 
       src={imageUrl || defaultImage}
       alt={title}
-      onerror={`this.onerror=null; this.src='${defaultImage}';`}
+      onerror={`this.onerror=null;this.src="${defaultImage.replace(/'/g, '%27')}";`}
       loading="lazy"
     />
   </div>
