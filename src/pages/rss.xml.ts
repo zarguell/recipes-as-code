@@ -31,22 +31,19 @@ export async function GET() {
     const totalTime = recipe.metadata["total-time"] || "";
     const pubDate = recipe.metadata.date ? new Date(recipe.metadata.date).toUTCString() : new Date().toUTCString();
     
-    items.push(`
-    <item>
+    items.push(`    <item>
       <title>${escapeXml(title)}</title>
       <description>${escapeXml(description)}</description>
       <link>https://zarguell.github.io/recipes-as-code/recipes/${slug}/</link>
       <guid>https://zarguell.github.io/recipes-as-code/recipes/${slug}/</guid>
       <pubDate>${pubDate}</pubDate>
-      oklang:recipe>
-        oklang:name>${escapeXml(title)}</cooklang:name>
-        oklang:image>${escapeXml(image)}</cooklang:image>
-        oklang:servings>${escapeXml(String(servings))}</cooklang:servings>
-        oklang:prep-time>${escapeXml(prepTime)}</cooklang:prep-time>
-        oklang:cook-time>${escapeXml(cookTime)}</cooklang:cook-time>
-        oklang:total-time>${escapeXml(totalTime)}</cooklang:total-time>
-        oklang:raw-url>https://zarguell.github.io/recipes-as-code/recipes/${slug}.cook</cooklang:raw-url>
-      </cooklang:recipe>
+      oklang:name>${escapeXml(title)}</cooklang:name>
+      oklang:image>${escapeXml(image)}</cooklang:image>
+      oklang:servings>${escapeXml(String(servings))}</cooklang:servings>
+      oklang:prep-time>${escapeXml(prepTime)}</cooklang:prep-time>
+      oklang:cook-time>${escapeXml(cookTime)}</cooklang:cook-time>
+      oklang:total-time>${escapeXml(totalTime)}</cooklang:total-time>
+      oklang:raw-url>https://zarguell.github.io/recipes-as-code/recipes/${slug}.cook</cooklang:raw-url>
     </item>`);
   }
 
@@ -57,11 +54,7 @@ export async function GET() {
     <description>A collection of recipes in CookLang format</description>
     <link>https://zarguell.github.io/recipes-as-code/</link>
     <language>en-us</language>
-    oklang:federation>
-      oklang:name>My Recipe Collection</cooklang:name>
-      oklang:description>A curated collection of recipes</cooklang:description>
-    </cooklang:federation>
-    ${items.join('\n')}
+${items.join('\n')}
   </channel>
 </rss>`;
 
