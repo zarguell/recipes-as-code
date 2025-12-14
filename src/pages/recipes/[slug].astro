@@ -21,14 +21,28 @@ const { slug } = Astro.params;
 const recipePath = resolve("recipes", `${slug}.cook`);
 const content = readFileSync(recipePath, "utf-8");
 
-// Parse the ENTIRE file - the Recipe class handles frontmatter itself
-const recipe = new Recipe(content);
+let recipe;
+let parseError = null;
 
-// Now we have everything!
+try {
+  recipe = new Recipe(content);
+} catch (error) {
+  console.error(`Error parsing recipe ${slug}:`, error.message);
+  parseError = error.message;
+  recipe = {
+    metadata: { title: slug },
+    ingredients: [],
+    steps: [],
+  };
+}
+
+// Debug what we got
+console.log(`Recipe ${slug}:`, JSON.stringify(recipe, null, 2));
+
 const ingredients = recipe.ingredients || [];
 const steps = recipe.steps || [];
 
-// Generate JSON-LD schema
+// Generate JSON-LD schema - fix the quantity mapping
 const jsonLd = {
   "@context": "https://schema.org/",
   "@type": "Recipe",
@@ -46,13 +60,20 @@ const jsonLd = {
     "@type": "Person",
     name: recipe.metadata.author || "Unknown",
   },
-  recipeIngredient: ingredients.map(
-    (ing) => `${ing.name}${ing.quantity ? ` ${ing.quantity} ${ing.units || ""}` : ""}`
-  ),
+  recipeIngredient: ingredients.map((ing) => {
+    let str = ing.name || "";
+    if (ing.quantity) {
+      // quantity might be an object with value property
+      const qty = typeof ing.quantity === 'object' ? ing.quantity.value : ing.quantity;
+      str += ` ${qty}`;
+      if (ing.units) str += ` ${ing.units}`;
+    }
+    return str;
+  }),
   recipeInstructions: steps.map((step, idx) => ({
     "@type": "HowToStep",
     position: idx + 1,
-    text: step.text,
+    text: step.text || step.value || String(step),
   })),
 };
 ---
@@ -131,6 +152,14 @@ const jsonLd = {
       a:hover {
         text-decoration: underline;
       }
+      .error {
+        background: #ffe5e5;
+        border: 1px solid #ff6b6b;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 4px;
+        color: #d63031;
+      }
     </style>
   </head>
   <body>
@@ -147,26 +176,32 @@ const jsonLd = {
       )}
     </div>
 
+    {parseError && (
+      <div class="error">
+        <strong>⚠️ Parse Error:</strong> {parseError}
+      </div>
+    )}
+
     <div class="recipe-meta">
-      {recipe.metadata.servings && (
+      {recipe.metadata?.servings && (
         <div class="meta-item">
           <div class="meta-label">Servings</div>
           <div class="meta-value">{recipe.metadata.servings}</div>
         </div>
       )}
-      {recipe.metadata["prep-time"] && (
+      {recipe.metadata?.["prep-time"] && (
         <div class="meta-item">
           <div class="meta-label">Prep Time</div>
           <div class="meta-value">{recipe.metadata["prep-time"]}</div>
         </div>
       )}
-      {recipe.metadata["cook-time"] && (
+      {recipe.metadata?.["cook-time"] && (
         <div class="meta-item">
           <div class="meta-label">Cook Time</div>
           <div class="meta-value">{recipe.metadata["cook-time"]}</div>
         </div>
       )}
-      {recipe.metadata["total-time"] && (
+      {recipe.metadata?.["total-time"] && (
         <div class="meta-item">
           <div class="meta-label">Total Time</div>
           <div class="meta-value">{recipe.metadata["total-time"]}</div>
@@ -177,11 +212,19 @@ const jsonLd = {
     <div class="recipe-content">
       <div class="recipe-section">
         <h2>🥘 Ingredients</h2>
-        <IngredientList ingredients={ingredients} />
+        {ingredients.length > 0 ? (
+          <IngredientList ingredients={ingredients} />
+        ) : (
+          <p>No ingredients parsed</p>
+        )}
       </div>
       <div class="recipe-section">
         <h2>👨‍🍳 Instructions</h2>
-        <RecipeSteps steps={steps} />
+        {steps.length > 0 ? (
+          <RecipeSteps steps={steps} />
+        ) : (
+          <p>No steps parsed</p>
+        )}
       </div>
     </div>
   </body>

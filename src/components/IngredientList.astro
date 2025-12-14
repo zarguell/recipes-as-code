@@ -3,17 +3,23 @@ const { ingredients } = Astro.props;
 ---
 
 <ul class="ingredient-list">
-  {ingredients.map((ing: any) => (
-    <li class="ingredient">
-      <span class="ingredient-name">{ing.name}</span>
-      {ing.quantity && (
-        <span class="ingredient-quantity">
-          {ing.quantity}
-          {ing.units}
-        </span>
-      )}
-    </li>
-  ))}
+  {ingredients.map((ing: any) => {
+    // Handle quantity being an object with value property
+    let quantityText = "";
+    if (ing.quantity) {
+      const qty = typeof ing.quantity === 'object' ? ing.quantity.value : ing.quantity;
+      quantityText = `${qty}${ing.units ? ` ${ing.units}` : ""}`;
+    }
+    
+    return (
+      <li class="ingredient">
+        <span class="ingredient-name">{ing.name}</span>
+        {quantityText && (
+          <span class="ingredient-quantity">{quantityText}</span>
+        )}
+      </li>
+    );
+  })}
 </ul>
 
 <style>

@@ -20,8 +20,6 @@ export async function GET(context: any) {
         console.error(`Error parsing ${file}:`, error.message);
         recipe = {
           metadata: { title: file.replace(".cook", "") },
-          ingredients: [],
-          steps: [],
         };
       }
       
