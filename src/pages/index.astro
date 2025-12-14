@@ -1,0 +1,64 @@
+---
+import { readdir } from "fs/promises";
+import { resolve } from "path";
+import { readFileSync } from "fs";
+import { Recipe } from "@tmlmt/cooklang-parser";
+import matter from "gray-matter";
+import RecipeCard from "../components/RecipeCard.astro";
+
+const recipesDir = resolve("recipes");
+const files = await readdir(recipesDir);
+const cookFiles = files.filter((f) => f.endsWith(".cook"));
+
+let recipes = await Promise.all(
+  cookFiles.map(async (file) => {
+    const content = readFileSync(resolve(recipesDir, file), "utf-8");
+    const { data: frontmatter, content: cookContent } = matter(content);
+    const parsed = new Recipe(cookContent);
+
+    return {
+      slug: file.replace(".cook", ""),
+      file,
+      frontmatter,
+      parsed,
+    };
+  })
+);
+
+// Sort by title or filename
+recipes = recipes.sort((a, b) =>
+  (a.frontmatter.title || a.slug).localeCompare(b.frontmatter.title || b.slug)
+);
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Recipes</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #faf9f7;
+      }
+      h1 {
+        color: #2d3436;
+        margin-bottom: 2rem;
+      }
+      .recipe-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🍳 My Recipes</h1>
+    <div class="recipe-grid">
+      {recipes.map((recipe) => <RecipeCard recipe={recipe} />)}
+    </div>
+  </body>
+</html>

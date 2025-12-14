@@ -1,0 +1,44 @@
+---
+const { steps } = Astro.props;
+---
+
+<ol class="steps">
+  {steps.map((step: any, idx: number) => (
+    <li class="step">
+      <div class="step-number">{idx + 1}</div>
+      <div class="step-content">{step.content || step.value}</div>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .step-number {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    background: #ff6b6b;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+
+  .step-content {
+    padding-top: 0.25rem;
+    color: #2d3436;
+  }
+</style>

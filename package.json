@@ -1,0 +1,28 @@
+{
+  "name": "recipe-site",
+  "version": "1.0.0",
+  "description": "A beautiful static recipe site built with Astro and CookLang",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "keywords": [
+    "astro",
+    "cooklang",
+    "recipes",
+    "static-site"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "astro": "^4.0.0"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.0",
+    "@tmlmt/cooklang-parser": "^1.1.0",
+    "gray-matter": "^4.0.3"
+  }
+}

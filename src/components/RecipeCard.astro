@@ -1,0 +1,79 @@
+---
+const { recipe } = Astro.props;
+const title = recipe.frontmatter.title || recipe.slug;
+---
+
+<a href={`/recipes/${recipe.slug}/`} class="recipe-card">
+  {recipe.frontmatter.image && (
+    <div class="recipe-image">
+      <img src={recipe.frontmatter.image} alt={title} />
+    </div>
+  )}
+  <div class="recipe-info">
+    <h3>{title}</h3>
+    {recipe.frontmatter.description && (
+      <p class="description">{recipe.frontmatter.description}</p>
+    )}
+    <div class="recipe-stats">
+      {recipe.parsed.metadata.servings && (
+        <span>👥 {recipe.parsed.metadata.servings}</span>
+      )}
+      {recipe.parsed.metadata["cook_time"] && (
+        <span>⏱️ {recipe.parsed.metadata["cook_time"]}</span>
+      )}
+    </div>
+  </div>
+</a>
+
+<style>
+  .recipe-card {
+    display: block;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .recipe-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .recipe-image {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    background: #e0e0e0;
+  }
+
+  .recipe-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .recipe-info {
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    color: #2d3436;
+  }
+
+  .description {
+    font-size: 0.9rem;
+    color: #636e72;
+    margin: 0.5rem 0 1rem 0;
+  }
+
+  .recipe-stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #636e72;
+  }
+</style>

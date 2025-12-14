@@ -1,0 +1,191 @@
+---
+import { readdir, readFile } from "fs/promises";
+import { resolve } from "path";
+import { readFileSync } from "fs";
+import { Recipe } from "@tmlmt/cooklang-parser";
+import matter from "gray-matter";
+import JsonLdSchema from "../../components/JsonLdSchema.astro";
+import IngredientList from "../../components/IngredientList.astro";
+import RecipeSteps from "../../components/RecipeSteps.astro";
+
+export async function getStaticPaths() {
+  const recipesDir = resolve("recipes");
+  const files = await readdir(recipesDir);
+  const cookFiles = files.filter((f) => f.endsWith(".cook"));
+
+  return cookFiles.map((file) => ({
+    params: { slug: file.replace(".cook", "") },
+  }));
+}
+
+const { slug } = Astro.params;
+const recipePath = resolve("recipes", `${slug}.cook`);
+const content = readFileSync(recipePath, "utf-8");
+const { data: frontmatter, content: cookContent } = matter(content);
+const recipe = new Recipe(cookContent);
+
+// Generate JSON-LD schema
+const jsonLd = {
+  "@context": "https://schema.org/",
+  "@type": "Recipe",
+  name: frontmatter.title || slug,
+  description: frontmatter.description || recipe.metadata.description || "",
+  image: frontmatter.image || null,
+  prepTime: recipe.metadata["prep_time"]
+    ? `PT${recipe.metadata["prep_time"]}`
+    : null,
+  cookTime: recipe.metadata["cook_time"]
+    ? `PT${recipe.metadata["cook_time"]}`
+    : null,
+  totalTime: recipe.metadata["total_time"]
+    ? `PT${recipe.metadata["total_time"]}`
+    : null,
+  recipeYield: recipe.metadata.servings || null,
+  recipeCategory: frontmatter.category || null,
+  recipeCuisine: frontmatter.cuisine || null,
+  keywords: (frontmatter.tags || []).join(", "),
+  author: {
+    "@type": "Person",
+    name: frontmatter.author || "Unknown",
+  },
+  recipeIngredient: recipe.ingredients.map(
+    (ing) =>
+      `${ing.name}${ing.quantity ? ` ${ing.quantity}${ing.unit || ""}` : ""}`
+  ),
+  recipeInstructions: recipe.steps.map((step, idx) => ({
+    "@type": "HowToStep",
+    position: idx + 1,
+    text: step.content || step.value,
+  })),
+};
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{frontmatter.title || slug}</title>
+    <JsonLdSchema schema={jsonLd} />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #faf9f7;
+        line-height: 1.6;
+      }
+      .recipe-header {
+        margin-bottom: 2rem;
+      }
+      h1 {
+        color: #2d3436;
+        margin: 0 0 0.5rem 0;
+      }
+      .recipe-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1rem 0;
+      }
+      .recipe-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+      .meta-item {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        border-left: 3px solid #ff6b6b;
+      }
+      .meta-label {
+        font-size: 0.85rem;
+        color: #636e72;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+      }
+      .meta-value {
+        font-weight: bold;
+        color: #2d3436;
+      }
+      .recipe-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin: 2rem 0;
+      }
+      @media (max-width: 768px) {
+        .recipe-content {
+          grid-template-columns: 1fr;
+        }
+      }
+      .recipe-section h2 {
+        color: #2d3436;
+        border-bottom: 2px solid #ff6b6b;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      a {
+        color: #0984e3;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="recipe-header">
+      <a href="/">← Back to recipes</a>
+      <h1>{frontmatter.title || slug}</h1>
+      {frontmatter.description && <p>{frontmatter.description}</p>}
+      {frontmatter.image && (
+        <img
+          src={frontmatter.image}
+          alt={frontmatter.title || slug}
+          class="recipe-image"
+        />
+      )}
+    </div>
+
+    <div class="recipe-meta">
+      {recipe.metadata.servings && (
+        <div class="meta-item">
+          <div class="meta-label">Servings</div>
+          <div class="meta-value">{recipe.metadata.servings}</div>
+        </div>
+      )}
+      {recipe.metadata["prep_time"] && (
+        <div class="meta-item">
+          <div class="meta-label">Prep Time</div>
+          <div class="meta-value">{recipe.metadata["prep_time"]}</div>
+        </div>
+      )}
+      {recipe.metadata["cook_time"] && (
+        <div class="meta-item">
+          <div class="meta-label">Cook Time</div>
+          <div class="meta-value">{recipe.metadata["cook_time"]}</div>
+        </div>
+      )}
+      {recipe.metadata["total_time"] && (
+        <div class="meta-item">
+          <div class="meta-label">Total Time</div>
+          <div class="meta-value">{recipe.metadata["total_time"]}</div>
+        </div>
+      )}
+    </div>
+
+    <div class="recipe-content">
+      <div class="recipe-section">
+        <h2>🥘 Ingredients</h2>
+        <IngredientList ingredients={recipe.ingredients} />
+      </div>
+      <div class="recipe-section">
+        <h2>👨‍🍳 Instructions</h2>
+        <RecipeSteps steps={recipe.steps} />
+      </div>
+    </div>
+  </body>
+</html>
