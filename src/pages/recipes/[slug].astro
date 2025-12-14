@@ -58,7 +58,15 @@ function getStepText(items: any[]) {
       if (item.type === "text") return item.value;
       if (item.type === "ingredient") return item.displayName || "";
       if (item.type === "cookware") return "[cookware]";
-      if (item.type === "timer") return "[timer]";
+      if (item.type === "timer") {
+        // Timer has a quantity object with value
+        if (item.quantity?.value?.value) {
+          const time = item.quantity.value.value;
+          const unit = item.unit || "minutes";
+          return `${time} ${unit}`;
+        }
+        return "[timer]";
+      }
       return "";
     })
     .join("");
@@ -67,6 +75,9 @@ function getStepText(items: any[]) {
 const imageUrl = recipe.metadata.image?.replace(/^["']|["']$/g, '') || null;
 const tags = recipe.metadata.tags || [];
 const source = recipe.metadata.source;
+
+// Default placeholder SVG
+const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
 
 // Generate JSON-LD schema
 const jsonLd = {
@@ -101,9 +112,6 @@ const jsonLd = {
     text: getStepText(step.items || []),
   })),
 };
-
-// Default placeholder SVG
-const defaultImage = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E`;
 ---
 
 <html lang="en">

@@ -10,7 +10,15 @@ function getStepText(items: any[]) {
       if (item.type === "text") return item.value;
       if (item.type === "ingredient") return item.displayName || "";
       if (item.type === "cookware") return "[cookware]";
-      if (item.type === "timer") return "[timer]";
+      if (item.type === "timer") {
+        // Timer has a quantity object with value
+        if (item.quantity?.value?.value) {
+          const time = item.quantity.value.value;
+          const unit = item.unit || "minutes";
+          return `${time} ${unit}`;
+        }
+        return "[timer]";
+      }
       return "";
     })
     .join("");
