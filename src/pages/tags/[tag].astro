@@ -1,0 +1,103 @@
+---
+import { readdir } from "fs/promises";
+import { resolve } from "path";
+import { readFileSync } from "fs";
+import { Recipe } from "@tmlmt/cooklang-parser";
+import RecipeCard from "../../components/RecipeCard.astro";
+
+export async function getStaticPaths() {
+  const recipesDir = resolve("recipes");
+  const files = await readdir(recipesDir);
+  const cookFiles = files.filter((f) => f.endsWith(".cook"));
+
+  const recipes = await Promise.all(
+    cookFiles.map(async (file) => {
+      const content = readFileSync(resolve(recipesDir, file), "utf-8");
+      let recipe;
+      
+      try {
+        recipe = new Recipe(content);
+      } catch (error) {
+        recipe = { metadata: { title: file.replace(".cook", ""), tags: [] } };
+      }
+
+      return {
+        slug: file.replace(".cook", ""),
+        parsed: recipe,
+      };
+    })
+  );
+
+  // Get all unique tags
+  const tagMap = new Map();
+  recipes.forEach(recipe => {
+    const tags = recipe.parsed.metadata.tags || [];
+    tags.forEach(tag => {
+      if (!tagMap.has(tag)) {
+        tagMap.set(tag, []);
+      }
+      tagMap.get(tag).push(recipe);
+    });
+  });
+
+  // Generate a page for each tag
+  return Array.from(tagMap.entries()).map(([tag, recipes]) => ({
+    params: { tag },
+    props: { recipes },
+  }));
+}
+
+const { tag } = Astro.params;
+const { recipes } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#{tag} Recipes</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #faf9f7;
+      }
+      h1 {
+        color: #2d3436;
+        margin-bottom: 0.5rem;
+      }
+      .tag-badge {
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        display: inline-block;
+        margin-bottom: 2rem;
+        font-weight: bold;
+      }
+      .recipe-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+      a {
+        color: #0984e3;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <a href={import.meta.env.BASE_URL}>← Back to all recipes</a>
+    <h1>Recipes tagged with</h1>
+    <div class="tag-badge">#{tag}</div>
+    
+    <div class="recipe-grid">
+      {recipes.map((recipe) => <RecipeCard recipe={recipe} />)}
+    </div>
+  </body>
+</html>

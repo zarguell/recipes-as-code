@@ -12,7 +12,20 @@ const cookFiles = files.filter((f) => f.endsWith(".cook"));
 let recipes = await Promise.all(
   cookFiles.map(async (file) => {
     const content = readFileSync(resolve(recipesDir, file), "utf-8");
-    const recipe = new Recipe(content);
+    let recipe;
+    
+    try {
+      recipe = new Recipe(content);
+    } catch (error) {
+      console.error(`Error parsing ${file}:`, error.message);
+      recipe = {
+        metadata: {
+          title: file.replace(".cook", ""),
+        },
+        ingredients: [],
+        steps: [],
+      };
+    }
 
     return {
       slug: file.replace(".cook", ""),
@@ -26,6 +39,14 @@ let recipes = await Promise.all(
 recipes = recipes.sort((a, b) =>
   (a.parsed.metadata.title || a.slug).localeCompare(b.parsed.metadata.title || b.slug)
 );
+
+// Get all unique tags
+const allTags = new Set();
+recipes.forEach(recipe => {
+  const tags = recipe.parsed.metadata.tags || [];
+  tags.forEach(tag => allTags.add(tag));
+});
+const sortedTags = Array.from(allTags).sort();
 ---
 
 <html lang="en">
@@ -41,21 +62,179 @@ recipes = recipes.sort((a, b) =>
         padding: 2rem;
         background: #faf9f7;
       }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
       h1 {
         color: #2d3436;
+        margin: 0;
+      }
+      .rss-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #ff6b6b;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+      .rss-button:hover {
+        background: #ee5a52;
+      }
+      .search-box {
+        width: 100%;
+        max-width: 400px;
+        padding: 0.75rem 1rem;
+        border: 2px solid #dfe6e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+      }
+      .search-box:focus {
+        outline: none;
+        border-color: #ff6b6b;
+      }
+      .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
         margin-bottom: 2rem;
+      }
+      .filter-tag {
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+      }
+      .filter-tag:hover {
+        background: #bbdefb;
+      }
+      .filter-tag.active {
+        background: #1976d2;
+        color: white;
+        border-color: #1565c0;
+      }
+      .filter-tag.all {
+        background: #fafafa;
+        color: #636e72;
+      }
+      .filter-tag.all.active {
+        background: #2d3436;
+        color: white;
       }
       .recipe-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 2rem;
       }
+      .recipe-card.hidden {
+        display: none;
+      }
+      .no-results {
+        text-align: center;
+        color: #636e72;
+        padding: 3rem;
+        font-size: 1.1rem;
+      }
     </style>
   </head>
   <body>
-    <h1>🍳 My Recipes</h1>
-    <div class="recipe-grid">
+    <div class="header">
+      <h1>🍳 My Recipes</h1>
+      <a href={`${import.meta.env.BASE_URL}rss.xml`} class="rss-button" target="_blank">
+        📡 RSS Feed
+      </a>
+    </div>
+
+    <input 
+      type="search" 
+      class="search-box" 
+      id="searchBox" 
+      placeholder="Search recipes..."
+      autocomplete="off"
+    />
+
+    <div class="filter-tags">
+      <button class="filter-tag all active" data-tag="all">All Recipes</button>
+      {sortedTags.map((tag: string) => (
+        <button class="filter-tag" data-tag={tag}>#{tag}</button>
+      ))}
+    </div>
+
+    <div class="recipe-grid" id="recipeGrid">
       {recipes.map((recipe) => <RecipeCard recipe={recipe} />)}
     </div>
+
+    <div class="no-results" id="noResults" style="display: none;">
+      No recipes found. Try a different search or tag.
+    </div>
+
+    <script define:vars={{ recipes }}>
+      const searchBox = document.getElementById('searchBox');
+      const recipeGrid = document.getElementById('recipeGrid');
+      const noResults = document.getElementById('noResults');
+      const recipeCards = document.querySelectorAll('.recipe-card');
+      const filterTags = document.querySelectorAll('.filter-tag');
+      
+      let currentTag = 'all';
+      let currentSearch = '';
+
+      // Build searchable recipe data
+      const recipeData = recipes.map((recipe, idx) => ({
+        element: recipeCards[idx],
+        title: recipe.parsed.metadata.title?.toLowerCase() || recipe.slug.toLowerCase(),
+        tags: recipe.parsed.metadata.tags || [],
+        description: recipe.parsed.metadata.description?.toLowerCase() || '',
+      }));
+
+      function filterRecipes() {
+        let visibleCount = 0;
+        
+        recipeData.forEach(recipe => {
+          const matchesTag = currentTag === 'all' || recipe.tags.includes(currentTag);
+          const matchesSearch = currentSearch === '' || 
+            recipe.title.includes(currentSearch) || 
+            recipe.description.includes(currentSearch) ||
+            recipe.tags.some(tag => tag.toLowerCase().includes(currentSearch));
+          
+          if (matchesTag && matchesSearch) {
+            recipe.element.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            recipe.element.classList.add('hidden');
+          }
+        });
+
+        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+
+      // Search functionality
+      searchBox.addEventListener('input', (e) => {
+        currentSearch = e.target.value.toLowerCase().trim();
+        filterRecipes();
+      });
+
+      // Tag filtering
+      filterTags.forEach(button => {
+        button.addEventListener('click', () => {
+          filterTags.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+          currentTag = button.dataset.tag;
+          filterRecipes();
+        });
+      });
+    </script>
   </body>
 </html>
