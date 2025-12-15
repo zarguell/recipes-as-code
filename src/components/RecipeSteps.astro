@@ -1,18 +1,12 @@
 ---
 const { steps } = Astro.props;
 
-// Debug: log the first step's items to see structure
-if (steps.length > 0 && steps[0].items) {
-  console.log("=== DEBUG: First step items ===");
-  console.log(JSON.stringify(steps[0].items, null, 2));
-}
-
 // Helper to extract text from step items
 function getStepText(items: any[]) {
   if (!items || items.length === 0) return "";
   
   return items
-    .map((item) => {
+    .map((item, itemIndex) => {
       if (item.type === "text") {
         return item.value;
       }
@@ -20,11 +14,15 @@ function getStepText(items: any[]) {
         return item.displayName || item.name || "";
       }
       if (item.type === "cookware") {
+        // Debug log to console
+        console.log("Cookware item:", JSON.stringify(item));
         // Try different possible properties
         const name = item.name || item.displayName || item.value?.name || "cookware";
         return `<code class="cookware">${name}</code>`;
       }
       if (item.type === "timer") {
+        // Debug log to console
+        console.log("Timer item:", JSON.stringify(item));
         // Try to extract timer value from different possible structures
         let time = "";
         let unit = "";
