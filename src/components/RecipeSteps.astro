@@ -53,15 +53,42 @@ const { steps, cookware = [], timers = [] } = Astro.props;
     
     return (
       <li class="step">
-        <input type="checkbox" class="step-checkbox" id={`step-${idx}`} />
+        <input type="checkbox" class="step-checkbox" id={`step-${idx}`} data-step-id={idx} />
         <label for={`step-${idx}`} class="step-label">
           <div class="step-number">{idx + 1}</div>
-          <div class="step-content" set:html={stepHtml} />
+          <div class="step-content" data-full-text={stepHtml} set:html={stepHtml} />
         </label>
       </li>
     );
   })}
 </ol>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('.step-checkbox');
+    
+    checkboxes.forEach((checkbox) => {
+      checkbox.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        const stepContent = target.parentElement?.querySelector('.step-content') as HTMLElement;
+        
+        if (!stepContent) return;
+        
+        const fullText = stepContent.getAttribute('data-full-text') || '';
+        const textOnly = stepContent.textContent || '';
+        
+        if (target.checked) {
+          // Truncate to first 30 characters
+          const truncated = textOnly.substring(0, 30) + (textOnly.length > 30 ? '...' : '');
+          stepContent.textContent = truncated;
+        } else {
+          // Restore full HTML
+          stepContent.innerHTML = fullText;
+        }
+      });
+    });
+  });
+</script>
 
 <style>
   .steps {
@@ -74,7 +101,8 @@ const { steps, cookware = [], timers = [] } = Astro.props;
     display: flex;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
-    transition: opacity 0.3s;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin 0.3s ease-out;
+    max-height: 500px;
   }
 
   .step-checkbox {
@@ -86,11 +114,21 @@ const { steps, cookware = [], timers = [] } = Astro.props;
   }
 
   .step-checkbox:checked ~ .step-label {
-    opacity: 0.4;
+    opacity: 0.3;
   }
 
   .step-checkbox:checked ~ .step-label .step-content {
     text-decoration: line-through;
+  }
+
+  /* Collapse the step when checked */
+  .step-checkbox:checked {
+    margin-top: 0;
+  }
+
+  .step:has(.step-checkbox:checked) {
+    max-height: 30px;
+    margin-bottom: 0.5rem;
   }
 
   .step-label {
@@ -98,6 +136,7 @@ const { steps, cookware = [], timers = [] } = Astro.props;
     gap: 1rem;
     flex: 1;
     cursor: pointer;
+    min-width: 0;
   }
 
   .step-number {
@@ -111,12 +150,19 @@ const { steps, cookware = [], timers = [] } = Astro.props;
     align-items: center;
     justify-content: center;
     font-weight: bold;
+    transition: background 0.2s;
+  }
+
+  .step-checkbox:checked ~ .step-label .step-number {
+    background: #95a5a6;
   }
 
   .step-content {
     padding-top: 0.25rem;
     color: #2d3436;
     line-height: 1.6;
+    min-width: 0;
+    flex: 1;
   }
 
   .step-content :global(code) {
