@@ -4,7 +4,7 @@ import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
 import yaml from "js-yaml";
-import RecipeCard from "../components/RecipeCard.astro";
+import RecipeCard from "../../components/RecipeCard.astro"; 
 
 const recipesDir = resolve("recipes");
 const files = await readdir(recipesDir);
