@@ -3,7 +3,7 @@ const { ingredients } = Astro.props;
 ---
 
 <ul class="ingredient-list">
-  {ingredients.map((ing: any) => {
+  {ingredients.map((ing: any, idx: number) => {
     let quantityText = "";
     if (ing.quantity?.value?.value !== undefined) {
       const qty = ing.quantity.value.value;
@@ -12,10 +12,13 @@ const { ingredients } = Astro.props;
     
     return (
       <li class="ingredient">
-        <span class="ingredient-name">{ing.name}</span>
-        {quantityText && (
-          <span class="ingredient-quantity">{quantityText}</span>
-        )}
+        <input type="checkbox" class="ingredient-checkbox" id={`ingredient-${idx}`} />
+        <label for={`ingredient-${idx}`} class="ingredient-content">
+          <span class="ingredient-name">{ing.name}</span>
+          {quantityText && (
+            <span class="ingredient-quantity">{quantityText}</span>
+          )}
+        </label>
       </li>
     );
   })}
@@ -30,14 +33,35 @@ const { ingredients } = Astro.props;
 
   .ingredient {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     padding: 0.75rem 0;
     border-bottom: 1px solid #ecf0f1;
+    transition: opacity 0.3s;
   }
 
   .ingredient:last-child {
     border-bottom: none;
+  }
+
+  .ingredient-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .ingredient-checkbox:checked ~ .ingredient-content {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  .ingredient-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1;
+    cursor: pointer;
   }
 
   .ingredient-name {

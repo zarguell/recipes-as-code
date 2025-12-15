@@ -1,48 +1,36 @@
 ---
-const { steps } = Astro.props;
+const { steps, cookware, timers } = Astro.props;
 
 // Helper to extract text from step items
 function getStepText(items: any[]) {
   if (!items || items.length === 0) return "";
   
   return items
-    .map((item, itemIndex) => {
+    .map((item) => {
       if (item.type === "text") {
         return item.value;
       }
+      
       if (item.type === "ingredient") {
         return item.displayName || item.name || "";
       }
+      
       if (item.type === "cookware") {
-        // Debug log to console
-        console.log("Cookware item:", JSON.stringify(item));
-        // Try different possible properties
-        const name = item.name || item.displayName || item.value?.name || "cookware";
+        const cookwareItem = cookware[item.index];
+        const name = cookwareItem?.name || "cookware";
         return `<code class="cookware">${name}</code>`;
       }
+      
       if (item.type === "timer") {
-        // Debug log to console
-        console.log("Timer item:", JSON.stringify(item));
-        // Try to extract timer value from different possible structures
-        let time = "";
-        let unit = "";
-        
-        if (item.quantity?.value?.value !== undefined) {
-          time = item.quantity.value.value;
-          unit = item.unit || item.quantity.unit || "minutes";
-        } else if (item.value?.value !== undefined) {
-          time = item.value.value;
-          unit = item.value.unit || "minutes";
-        } else if (item.duration) {
-          time = item.duration;
-          unit = item.unit || "minutes";
-        }
-        
-        if (time) {
-          return `<code class="timer">⏱️ ${time} ${unit}</code>`;
+        const timerItem = timers[item.index];
+        if (timerItem) {
+          const quantity = timerItem.quantity || timerItem.duration || "";
+          const unit = timerItem.unit || timerItem.units || "minutes";
+          return `<code class="timer">⏱️ ${quantity} ${unit}</code>`;
         }
         return `<code class="timer">timer</code>`;
       }
+      
       return "";
     })
     .join("");
@@ -52,8 +40,11 @@ function getStepText(items: any[]) {
 <ol class="steps">
   {steps.map((step: any, idx: number) => (
     <li class="step">
-      <div class="step-number">{idx + 1}</div>
-      <div class="step-content" set:html={getStepText(step.items || [])} />
+      <input type="checkbox" class="step-checkbox" id={`step-${idx}`} />
+      <label for={`step-${idx}`} class="step-label">
+        <div class="step-number">{idx + 1}</div>
+        <div class="step-content" set:html={getStepText(step.items || [])} />
+      </label>
     </li>
   ))}
 </ol>
@@ -67,8 +58,32 @@ function getStepText(items: any[]) {
 
   .step {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
+    transition: opacity 0.3s;
+  }
+
+  .step-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+  }
+
+  .step-checkbox:checked ~ .step-label {
+    opacity: 0.4;
+  }
+
+  .step-checkbox:checked ~ .step-label .step-content {
+    text-decoration: line-through;
+  }
+
+  .step-label {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    cursor: pointer;
   }
 
   .step-number {

@@ -6,6 +6,8 @@ import { Recipe } from "@tmlmt/cooklang-parser";
 import JsonLdSchema from "../../components/JsonLdSchema.astro";
 import IngredientList from "../../components/IngredientList.astro";
 import RecipeSteps from "../../components/RecipeSteps.astro";
+import CookwareList from "../../components/CookwareList.astro";
+
 
 export async function getStaticPaths() {
   const recipesDir = resolve("recipes");
@@ -26,29 +28,6 @@ let parseError = null;
 
 try {
   recipe = new Recipe(content);
-  
-  // DEBUG: Log the structure
-  console.log(`\n=== Parsing ${slug} ===`);
-  console.log("Recipe keys:", Object.keys(recipe));
-  console.log("Has sections?", !!recipe.sections);
-  console.log("Has steps?", !!recipe.steps);
-  
-  // Check different possible structures
-  if (recipe.sections) {
-    console.log("Number of sections:", recipe.sections.length);
-    if (recipe.sections[0]) {
-      console.log("First section keys:", Object.keys(recipe.sections[0]));
-      console.log("First section:", JSON.stringify(recipe.sections[0], null, 2).substring(0, 500));
-    }
-  }
-  
-  if (recipe.steps) {
-    console.log("Number of steps:", recipe.steps.length);
-    if (recipe.steps[0]) {
-      console.log("First step:", JSON.stringify(recipe.steps[0], null, 2).substring(0, 500));
-    }
-  }
-  
 } catch (error) {
   console.error(`Error parsing recipe ${slug}:`, error.message);
   parseError = error.message;
@@ -60,28 +39,19 @@ try {
 }
 
 const ingredients = recipe.ingredients || [];
+const cookwareList = recipe.cookware || [];
+const timersList = recipe.timers || [];
 
-// Try multiple ways to extract steps
-let steps = [];
-
-// Method 1: Check if recipe.steps exists directly
-if (recipe.steps && Array.isArray(recipe.steps)) {
-  steps = recipe.steps;
-  console.log("Using recipe.steps directly");
-}
-// Method 2: Extract from sections
-else if (recipe.sections) {
+// Extract steps from sections
+const steps = [];
+if (recipe.sections) {
   for (const section of recipe.sections) {
     if (section.content) {
       const sectionSteps = section.content.filter((item: any) => item.type === "step");
       steps.push(...sectionSteps);
     }
   }
-  console.log("Extracted from sections");
 }
-
-console.log("Final steps count:", steps.length);
-console.log("=== End parsing ===\n");
 
 // Helper to extract text from step items
 function getStepText(items: any[]) {
@@ -92,27 +62,29 @@ function getStepText(items: any[]) {
       if (item.type === "text") {
         return item.value;
       }
+      
       if (item.type === "ingredient") {
         return item.displayName || item.name || "";
       }
+      
       if (item.type === "cookware") {
-        const name = item.name || item.displayName || "cookware";
+        // Look up the cookware by index
+        const cookwareItem = cookwareList[item.index];
+        const name = cookwareItem?.name || "cookware";
         return name;
       }
+      
       if (item.type === "timer") {
-        let time = "";
-        let unit = "";
-        
-        if (item.quantity?.value?.value !== undefined) {
-          time = item.quantity.value.value;
-          unit = item.unit || "minutes";
-        }
-        
-        if (time) {
-          return `${time} ${unit}`;
+        // Look up the timer by index
+        const timerItem = timersList[item.index];
+        if (timerItem) {
+          const quantity = timerItem.quantity || timerItem.duration || "";
+          const unit = timerItem.unit || timerItem.units || "minutes";
+          return `${quantity} ${unit}`;
         }
         return "timer";
       }
+      
       return "";
     })
     .join("");
@@ -193,6 +165,22 @@ const jsonLd = {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 1rem;
         margin: 1.5rem 0;
+      }
+      .recipe-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin: 2rem 0;
+      }
+      .recipe-column {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+      @media (max-width: 768px) {
+        .recipe-content {
+          grid-template-columns: 1fr;
+        }
       }
       .meta-item {
         background: white;
@@ -326,17 +314,29 @@ const jsonLd = {
     </div>
 
     <div class="recipe-content">
-      <div class="recipe-section">
-        <h2>🥘 Ingredients</h2>
-        <IngredientList ingredients={ingredients} />
-      </div>
-      <div class="recipe-section">
-        <h2>👨‍🍳 Instructions</h2>
-        {steps.length > 0 ? (
-          <RecipeSteps steps={steps} />
-        ) : (
-          <p>No instructions found</p>
+      <div class="recipe-column">
+        <div class="recipe-section">
+          <h2>🥘 Ingredients</h2>
+          <IngredientList ingredients={ingredients} />
+        </div>
+        
+        {cookwareList.length > 0 && (
+          <div class="recipe-section">
+            <h2>🍳 Cookware</h2>
+            <CookwareList cookware={cookwareList} />
+          </div>
         )}
+      </div>
+      
+      <div class="recipe-column">
+        <div class="recipe-section">
+          <h2>👨‍🍳 Instructions</h2>
+          {steps.length > 0 ? (
+            <RecipeSteps steps={steps} cookware={cookwareList} timers={timersList} />
+          ) : (
+            <p>No instructions found</p>
+          )}
+        </div>
       </div>
     </div>
   </body>

@@ -1,0 +1,67 @@
+---
+const { cookware } = Astro.props;
+---
+
+{cookware && cookware.length > 0 && (
+  <ul class="cookware-list">
+    {cookware.map((item: any, idx: number) => (
+      <li class="cookware-item">
+        <input type="checkbox" class="cookware-checkbox" id={`cookware-${idx}`} />
+        <label for={`cookware-${idx}`} class="cookware-content">
+          <span class="cookware-icon">🍳</span>
+          <span class="cookware-name">{item.name || item}</span>
+        </label>
+      </li>
+    ))}
+  </ul>
+)}
+
+<style>
+  .cookware-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .cookware-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #ecf0f1;
+    transition: opacity 0.3s;
+  }
+
+  .cookware-item:last-child {
+    border-bottom: none;
+  }
+
+  .cookware-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .cookware-checkbox:checked ~ .cookware-content {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  .cookware-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .cookware-icon {
+    font-size: 1.2rem;
+  }
+
+  .cookware-name {
+    color: #2d3436;
+    font-weight: 500;
+  }
+</style>
