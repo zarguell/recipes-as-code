@@ -26,6 +26,29 @@ let parseError = null;
 
 try {
   recipe = new Recipe(content);
+  
+  // DEBUG: Log the structure
+  console.log(`\n=== Parsing ${slug} ===`);
+  console.log("Recipe keys:", Object.keys(recipe));
+  console.log("Has sections?", !!recipe.sections);
+  console.log("Has steps?", !!recipe.steps);
+  
+  // Check different possible structures
+  if (recipe.sections) {
+    console.log("Number of sections:", recipe.sections.length);
+    if (recipe.sections[0]) {
+      console.log("First section keys:", Object.keys(recipe.sections[0]));
+      console.log("First section:", JSON.stringify(recipe.sections[0], null, 2).substring(0, 500));
+    }
+  }
+  
+  if (recipe.steps) {
+    console.log("Number of steps:", recipe.steps.length);
+    if (recipe.steps[0]) {
+      console.log("First step:", JSON.stringify(recipe.steps[0], null, 2).substring(0, 500));
+    }
+  }
+  
 } catch (error) {
   console.error(`Error parsing recipe ${slug}:`, error.message);
   parseError = error.message;
@@ -38,16 +61,27 @@ try {
 
 const ingredients = recipe.ingredients || [];
 
-// Extract steps from ALL sections and flatten
-const steps = [];
-if (recipe.sections) {
+// Try multiple ways to extract steps
+let steps = [];
+
+// Method 1: Check if recipe.steps exists directly
+if (recipe.steps && Array.isArray(recipe.steps)) {
+  steps = recipe.steps;
+  console.log("Using recipe.steps directly");
+}
+// Method 2: Extract from sections
+else if (recipe.sections) {
   for (const section of recipe.sections) {
     if (section.content) {
       const sectionSteps = section.content.filter((item: any) => item.type === "step");
       steps.push(...sectionSteps);
     }
   }
+  console.log("Extracted from sections");
 }
+
+console.log("Final steps count:", steps.length);
+console.log("=== End parsing ===\n");
 
 // Helper to extract text from step items
 function getStepText(items: any[]) {
@@ -55,17 +89,26 @@ function getStepText(items: any[]) {
   
   return items
     .map((item) => {
-      if (item.type === "text") return item.value;
-      if (item.type === "ingredient") return item.displayName || item.name || "";
+      if (item.type === "text") {
+        return item.value;
+      }
+      if (item.type === "ingredient") {
+        return item.displayName || item.name || "";
+      }
       if (item.type === "cookware") {
-        // Cookware has a name field
-        return item.name || "cookware";
+        const name = item.name || item.displayName || "cookware";
+        return name;
       }
       if (item.type === "timer") {
-        // Timer has a quantity object with value
-        if (item.quantity?.value?.value) {
-          const time = item.quantity.value.value;
-          const unit = item.unit || "minutes";
+        let time = "";
+        let unit = "";
+        
+        if (item.quantity?.value?.value !== undefined) {
+          time = item.quantity.value.value;
+          unit = item.unit || "minutes";
+        }
+        
+        if (time) {
           return `${time} ${unit}`;
         }
         return "timer";
