@@ -1,5 +1,6 @@
 ---
 const { recipe } = Astro.props;
+
 const title = recipe.parsed.metadata.title || recipe.slug;
 const description = recipe.parsed.metadata.description || "";
 const tags = recipe.parsed.metadata.tags || [];
@@ -7,6 +8,13 @@ const imageUrl = recipe.parsed.metadata.image?.replace(/^["']|["']$/g, '') || nu
 
 // Default placeholder SVG
 const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
+
+// Get time info
+const prepTime = recipe.parsed.metadata["prep-time"];
+const cookTime = recipe.parsed.metadata["cook-time"];
+const totalTime = recipe.parsed.metadata["total-time"];
+const servings = recipe.parsed.metadata.servings;
+
 ---
 
 <a 
@@ -30,17 +38,21 @@ const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
       <p class="description">{description}</p>
     )}
     <div class="recipe-stats">
-      {recipe.parsed.metadata.servings && (
-        <span>👥 {recipe.parsed.metadata.servings}</span>
+      {servings && (
+        <span class="stat">👥 {servings}</span>
       )}
-      {recipe.parsed.metadata["total-time"] && (
-        <span>⏱️ {recipe.parsed.metadata["total-time"]}</span>
+      {totalTime && (
+        <span class="stat">⏱️ {totalTime}</span>
       )}
-      {!recipe.parsed.metadata["total-time"] && recipe.parsed.metadata["cook-time"] && (
-        <span>🔥 {recipe.parsed.metadata["cook-time"]}</span>
-      )}
-      {!recipe.parsed.metadata["total-time"] && recipe.parsed.metadata["prep-time"] && (
-        <span>🔪 {recipe.parsed.metadata["prep-time"]}</span>
+      {!totalTime && (prepTime || cookTime) && (
+        <>
+          {prepTime && (
+            <span class="stat">🔪 {prepTime}</span>
+          )}
+          {cookTime && (
+            <span class="stat">🔥 {cookTime}</span>
+          )}
+        </>
       )}
     </div>
   </div>
@@ -83,6 +95,7 @@ const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
   h3 {
     margin: 0 0 0.5rem 0;
     color: #2d3436;
+    font-size: 1.25rem;
   }
 
   .description {
@@ -101,5 +114,11 @@ const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
     gap: 0.75rem;
     font-size: 0.85rem;
     color: #636e72;
+  }
+
+  .stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
   }
 </style>

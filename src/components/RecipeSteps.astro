@@ -1,52 +1,66 @@
 ---
-const { steps, cookware, timers } = Astro.props;
-
-// Helper to extract text from step items
-function getStepText(items: any[]) {
-  if (!items || items.length === 0) return "";
-  
-  return items
-    .map((item) => {
-      if (item.type === "text") {
-        return item.value;
-      }
-      
-      if (item.type === "ingredient") {
-        return item.displayName || item.name || "";
-      }
-      
-      if (item.type === "cookware") {
-        const cookwareItem = cookware[item.index];
-        const name = cookwareItem?.name || "cookware";
-        return `<code class="cookware">${name}</code>`;
-      }
-      
-      if (item.type === "timer") {
-        const timerItem = timers[item.index];
-        if (timerItem) {
-          const quantity = timerItem.quantity || timerItem.duration || "";
-          const unit = timerItem.unit || timerItem.units || "minutes";
-          return `<code class="timer">⏱️ ${quantity} ${unit}</code>`;
-        }
-        return `<code class="timer">timer</code>`;
-      }
-      
-      return "";
-    })
-    .join("");
-}
+const { steps, cookware = [], timers = [] } = Astro.props;
 ---
 
 <ol class="steps">
-  {steps.map((step: any, idx: number) => (
-    <li class="step">
-      <input type="checkbox" class="step-checkbox" id={`step-${idx}`} />
-      <label for={`step-${idx}`} class="step-label">
-        <div class="step-number">{idx + 1}</div>
-        <div class="step-content" set:html={getStepText(step.items || [])} />
-      </label>
-    </li>
-  ))}
+  {steps.map((step: any, idx: number) => {
+    // Build the step text here in the map, with direct access to cookware/timers
+    const stepHtml = (step.items || [])
+      .map((item: any) => {
+        if (item.type === "text") {
+          return item.value;
+        }
+        
+        if (item.type === "ingredient") {
+          return item.displayName || item.name || "";
+        }
+        
+        if (item.type === "cookware") {
+          const cookwareItem = cookware[item.value];
+          const name = cookwareItem?.name || "cookware";
+          return `<code class="cookware">${name}</code>`;
+        }
+        
+        if (item.type === "timer") {
+          const timerItem = timers[item.value];
+          if (timerItem) {
+            const quantity = timerItem.duration?.value?.value || "";
+            let unit = timerItem.unit || "minutes";
+            
+            // Check if unit contains a range (e.g., "minutes|4%minutes")
+            if (unit.includes('|')) {
+              const parts = unit.split('|');
+              const realUnit = parts[0]; // "minutes"
+              const secondPart = parts[1]; // "4%minutes"
+              
+              // Extract the second number from "4%minutes"
+              const match = secondPart.match(/^(\d+)%/);
+              if (match) {
+                const max = match[1];
+                return `<code class="timer">⏱️ ${quantity}-${max} ${realUnit}</code>`;
+              }
+            }
+            
+            // Normal single value
+            return `<code class="timer">⏱️ ${quantity} ${unit}</code>`;
+          }
+          return `<code class="timer">timer</code>`;
+        }
+        
+        return "";
+      })
+      .join("");
+    
+    return (
+      <li class="step">
+        <input type="checkbox" class="step-checkbox" id={`step-${idx}`} />
+        <label for={`step-${idx}`} class="step-label">
+          <div class="step-number">{idx + 1}</div>
+          <div class="step-content" set:html={stepHtml} />
+        </label>
+      </li>
+    );
+  })}
 </ol>
 
 <style>

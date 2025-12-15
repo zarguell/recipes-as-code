@@ -23,6 +23,7 @@
   "dependencies": {
     "@astrojs/rss": "^4.0.0",
     "@tmlmt/cooklang-parser": "^1.1.0",
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "js-yaml": "^4.1.1"
   }
 }

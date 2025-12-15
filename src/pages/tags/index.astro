@@ -3,114 +3,240 @@ import { readdir } from "fs/promises";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
+import yaml from "js-yaml";
+import RecipeCard from "../components/RecipeCard.astro";
 
 const recipesDir = resolve("recipes");
 const files = await readdir(recipesDir);
 const cookFiles = files.filter((f) => f.endsWith(".cook"));
 
-const recipes = await Promise.all(
-  cookFiles.map(async (file) => {
-    const content = readFileSync(resolve(recipesDir, file), "utf-8");
-    let recipe;
-    
+const recipes = cookFiles.map((file) => {
+  const slug = file.replace(".cook", "");
+  const filePath = resolve(recipesDir, file);
+  const content = readFileSync(filePath, "utf-8");
+  
+  // Extract YAML frontmatter
+  let frontmatter = {};
+  let recipeContent = content;
+  
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (frontmatterMatch) {
     try {
-      recipe = new Recipe(content);
-    } catch (error) {
-      recipe = { metadata: { title: file.replace(".cook", ""), tags: [] } };
+      frontmatter = yaml.load(frontmatterMatch[1]) || {};
+      recipeContent = frontmatterMatch[2];
+    } catch (e) {
+      console.error(`Error parsing YAML in ${file}:`, e);
     }
-
-    return {
-      slug: file.replace(".cook", ""),
-      parsed: recipe,
-    };
-  })
-);
-
-// Count recipes per tag
-const tagMap = new Map();
-recipes.forEach(recipe => {
-  const tags = recipe.parsed.metadata.tags || [];
-  tags.forEach(tag => {
-    if (!tagMap.has(tag)) {
-      tagMap.set(tag, 0);
-    }
-    tagMap.set(tag, tagMap.get(tag) + 1);
-  });
+  }
+  
+  let parsed;
+  try {
+    parsed = new Recipe(recipeContent);
+    // Merge frontmatter with parsed metadata - frontmatter takes priority
+    parsed.metadata = { ...parsed.metadata, ...frontmatter };
+    
+  } catch (error) {
+    console.error(`Error parsing ${file}:`, error);
+    parsed = { metadata: frontmatter, ingredients: [], sections: [] };
+  }
+  
+  return { slug, parsed };
 });
 
-// Sort tags alphabetically
-const sortedTags = Array.from(tagMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+// Sort by title
+recipes.sort((a, b) => {
+  const titleA = a.parsed.metadata.title || a.slug;
+  const titleB = b.parsed.metadata.title || b.slug;
+  return titleA.localeCompare(titleB);
+});
+
+// Get all unique tags
+const allTags = new Set<string>();
+recipes.forEach((recipe) => {
+  const tags = recipe.parsed.metadata.tags || [];
+  tags.forEach((tag: string) => allTags.add(tag));
+});
+const sortedTags = Array.from(allTags).sort();
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Browse by Tag</title>
+    <title>Recipe Collection</title>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
-        font-family: system-ui, sans-serif;
-        max-width: 1200px;
-        margin: 0 auto;
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
         padding: 2rem;
         background: #faf9f7;
       }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
       h1 {
         color: #2d3436;
+        margin-bottom: 1rem;
+      }
+      .subtitle {
+        color: #636e72;
         margin-bottom: 2rem;
       }
-      a.back-link {
-        color: #0984e3;
-        text-decoration: none;
-        margin-bottom: 1rem;
-        display: inline-block;
-      }
-      a.back-link:hover {
-        text-decoration: underline;
-      }
-      .tags-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      .controls {
+        margin-bottom: 2rem;
+        display: flex;
+        flex-wrap: wrap;
         gap: 1rem;
+        align-items: center;
+      }
+      .search-box {
+        flex: 1;
+        min-width: 250px;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #dfe6e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+      }
+      .search-box input:focus {
+        outline: none;
+        border-color: #0984e3;
+      }
+      .tag-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .tag-button {
+        background: #e3f2fd;
+        color: #1976d2;
+        border: 2px solid transparent;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+      }
+      .tag-button:hover {
+        background: #bbdefb;
+      }
+      .tag-button.active {
+        background: #1976d2;
+        color: white;
+        border-color: #1565c0;
+      }
+      .recipe-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
         margin-top: 2rem;
       }
-      .tag-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        text-decoration: none;
-        color: inherit;
-        transition: transform 0.2s, box-shadow 0.2s;
-        border-left: 4px solid #1976d2;
-      }
-      .tag-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-      .tag-name {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #1976d2;
-        margin-bottom: 0.5rem;
-      }
-      .tag-count {
+      .no-results {
+        text-align: center;
+        padding: 3rem;
         color: #636e72;
-        font-size: 0.9rem;
+        font-size: 1.1rem;
       }
     </style>
   </head>
   <body>
-    <a href={import.meta.env.BASE_URL} class="back-link">← Back to all recipes</a>
-    <h1>🏷️ Browse by Tag</h1>
-    
-    <div class="tags-grid">
-      {sortedTags.map(([tag, count]) => (
-        <a href={`${import.meta.env.BASE_URL}tags/${tag}/`} class="tag-card">
-          <div class="tag-name">#{tag}</div>
-          <div class="tag-count">{count} {count === 1 ? 'recipe' : 'recipes'}</div>
-        </a>
-      ))}
+    <div class="container">
+      <h1>🍳 Recipe Collection</h1>
+      <p class="subtitle">{recipes.length} recipes available</p>
+      
+      <div class="controls">
+        <div class="search-box">
+          <input
+            type="text"
+            id="search"
+            placeholder="Search recipes by title, description, or tags..."
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      {sortedTags.length > 0 && (
+        <div class="tag-filter" id="tagFilter">
+          {sortedTags.map((tag) => (
+            <button class="tag-button" data-tag={tag}>
+              #{tag}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div class="recipe-grid" id="recipeGrid">
+        {recipes.map((recipe) => (
+          <RecipeCard recipe={recipe} />
+        ))}
+      </div>
+
+      <div class="no-results" id="noResults" style="display: none;">
+        No recipes found matching your search.
+      </div>
     </div>
+
+    <script>
+      const searchInput = document.getElementById('search') as HTMLInputElement;
+      const recipeGrid = document.getElementById('recipeGrid') as HTMLElement;
+      const noResults = document.getElementById('noResults') as HTMLElement;
+      const tagButtons = document.querySelectorAll('.tag-button');
+      
+      let activeTag: string | null = null;
+
+      function filterRecipes() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const cards = recipeGrid.querySelectorAll('.recipe-card') as NodeListOf<HTMLElement>;
+        let visibleCount = 0;
+
+        cards.forEach((card) => {
+          const title = card.dataset.title || '';
+          const description = card.dataset.description || '';
+          const tags = card.dataset.tags || '';
+          
+          const matchesSearch = !searchTerm || 
+            title.includes(searchTerm) || 
+            description.includes(searchTerm) ||
+            tags.includes(searchTerm);
+          
+          const matchesTag = !activeTag || tags.split(',').includes(activeTag);
+          
+          const shouldShow = matchesSearch && matchesTag;
+          
+          card.style.display = shouldShow ? 'block' : 'none';
+          if (shouldShow) visibleCount++;
+        });
+
+        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        recipeGrid.style.display = visibleCount === 0 ? 'none' : 'grid';
+      }
+
+      searchInput.addEventListener('input', filterRecipes);
+
+      tagButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const tag = button.getAttribute('data-tag');
+          
+          if (activeTag === tag) {
+            activeTag = null;
+            button.classList.remove('active');
+          } else {
+            tagButtons.forEach((btn) => btn.classList.remove('active'));
+            activeTag = tag;
+            button.classList.add('active');
+          }
+          
+          filterRecipes();
+        });
+      });
+    </script>
   </body>
 </html>

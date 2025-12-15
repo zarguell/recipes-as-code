@@ -3,42 +3,51 @@ import { readdir } from "fs/promises";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
+import yaml from "js-yaml";
 import RecipeCard from "../components/RecipeCard.astro";
 
 const recipesDir = resolve("recipes");
 const files = await readdir(recipesDir);
 const cookFiles = files.filter((f) => f.endsWith(".cook"));
 
-let recipes = await Promise.all(
-  cookFiles.map(async (file) => {
-    const content = readFileSync(resolve(recipesDir, file), "utf-8");
-    let recipe;
-    
+const recipes = cookFiles.map((file) => {
+  const slug = file.replace(".cook", "");
+  const filePath = resolve(recipesDir, file);
+  const content = readFileSync(filePath, "utf-8");
+  
+  // Extract YAML frontmatter
+  let frontmatter = {};
+  let recipeContent = content;
+  
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (frontmatterMatch) {
     try {
-      recipe = new Recipe(content);
-    } catch (error) {
-      console.error(`Error parsing ${file}:`, error.message);
-      recipe = {
-        metadata: {
-          title: file.replace(".cook", ""),
-        },
-        ingredients: [],
-        steps: [],
-      };
+      frontmatter = yaml.load(frontmatterMatch[1]) || {};
+      recipeContent = frontmatterMatch[2];
+    } catch (e) {
+      console.error(`Error parsing YAML in ${file}:`, e);
     }
+  }
+  
+  let parsed;
+  try {
+    parsed = new Recipe(recipeContent);
+    // Merge frontmatter with parsed metadata - frontmatter takes priority
+    parsed.metadata = { ...parsed.metadata, ...frontmatter };
+  } catch (error) {
+    console.error(`Error parsing ${file}:`, error);
+    parsed = { metadata: frontmatter, ingredients: [], sections: [] };
+  }
+  
+  return { slug, file, parsed };
+});
 
-    return {
-      slug: file.replace(".cook", ""),
-      file,
-      parsed: recipe,
-    };
-  })
-);
-
-// Sort by title or filename
-recipes = recipes.sort((a, b) =>
-  (a.parsed.metadata.title || a.slug).localeCompare(b.parsed.metadata.title || b.slug)
-);
+// Sort by title
+recipes.sort((a, b) => {
+  const titleA = a.parsed.metadata.title || a.slug;
+  const titleB = b.parsed.metadata.title || b.slug;
+  return titleA.localeCompare(titleB);
+});
 ---
 
 <html lang="en">
@@ -47,83 +56,83 @@ recipes = recipes.sort((a, b) =>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>My Recipes</title>
     <style>
-		body {
-			font-family: system-ui, sans-serif;
-			max-width: 1200px;
-			margin: 0 auto;
-			padding: 2rem;
-			background: #faf9f7;
-		}
-		.header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			margin-bottom: 2rem;
-			flex-wrap: wrap;
-			gap: 1rem;
-		}
-		h1 {
-			color: #2d3436;
-			margin: 0;
-		}
-		.header-buttons {
-			display: flex;
-			gap: 1rem;
-		}
-		.button {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.5rem;
-			background: #ff6b6b;
-			color: white;
-			padding: 0.75rem 1.5rem;
-			border-radius: 8px;
-			text-decoration: none;
-			font-weight: bold;
-			transition: background 0.2s;
-		}
-		.button:hover {
-			background: #ee5a52;
-		}
-		.button.secondary {
-			background: #0984e3;
-		}
-		.button.secondary:hover {
-			background: #0770c9;
-		}
-		.search-box {
-			width: 100%;
-			max-width: 400px;
-			padding: 0.75rem 1rem;
-			border: 2px solid #dfe6e9;
-			border-radius: 8px;
-			font-size: 1rem;
-			margin-bottom: 2rem;
-			transition: border-color 0.2s;
-		}
-		.search-box:focus {
-			outline: none;
-			border-color: #ff6b6b;
-		}
-		.recipe-grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-			gap: 2rem;
-		}
-		:global(.recipe-card.hidden) {
-			display: none !important;
-		}
-		.no-results {
-			text-align: center;
-			color: #636e72;
-			padding: 3rem;
-			font-size: 1.1rem;
-			display: none;
-		}
-		.no-results.show {
-			display: block;
-		}
-	</style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #faf9f7;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+      h1 {
+        color: #2d3436;
+        margin: 0;
+      }
+      .header-buttons {
+        display: flex;
+        gap: 1rem;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #ff6b6b;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+      .button:hover {
+        background: #ee5a52;
+      }
+      .button.secondary {
+        background: #0984e3;
+      }
+      .button.secondary:hover {
+        background: #0770c9;
+      }
+      .search-box {
+        width: 100%;
+        max-width: 400px;
+        padding: 0.75rem 1rem;
+        border: 2px solid #dfe6e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        transition: border-color 0.2s;
+      }
+      .search-box:focus {
+        outline: none;
+        border-color: #ff6b6b;
+      }
+      .recipe-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+      :global(.recipe-card.hidden) {
+        display: none !important;
+      }
+      .no-results {
+        text-align: center;
+        color: #636e72;
+        padding: 3rem;
+        font-size: 1.1rem;
+        display: none;
+      }
+      .no-results.show {
+        display: block;
+      }
+    </style>
   </head>
   <body>
     <div class="header">
@@ -162,7 +171,6 @@ recipes = recipes.sort((a, b) =>
 
         console.log('Search initialized');
         console.log('Found recipe cards:', recipeCards.length);
-        console.log('Search box:', searchBox);
 
         if (!searchBox || !noResults || recipeCards.length === 0) {
           console.error('Missing elements!');
@@ -172,8 +180,6 @@ recipes = recipes.sort((a, b) =>
         searchBox.addEventListener('input', function(e) {
           const search = e.target.value.toLowerCase().trim();
           let visibleCount = 0;
-          
-          console.log('Searching for:', search);
           
           recipeCards.forEach(function(card) {
             if (search === '') {
@@ -199,16 +205,12 @@ recipes = recipes.sort((a, b) =>
             }
           });
 
-          console.log('Visible count:', visibleCount);
-
           if (visibleCount === 0) {
             noResults.classList.add('show');
           } else {
             noResults.classList.remove('show');
           }
         });
-
-        console.log('Search listener attached');
       });
     </script>
   </body>

@@ -3,11 +3,11 @@ import { readdir } from "fs/promises";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
+import yaml from "js-yaml";
 import JsonLdSchema from "../../components/JsonLdSchema.astro";
 import IngredientList from "../../components/IngredientList.astro";
 import RecipeSteps from "../../components/RecipeSteps.astro";
 import CookwareList from "../../components/CookwareList.astro";
-
 
 export async function getStaticPaths() {
   const recipesDir = resolve("recipes");
@@ -23,20 +23,39 @@ const { slug } = Astro.params;
 const recipePath = resolve("recipes", `${slug}.cook`);
 const content = readFileSync(recipePath, "utf-8");
 
+// Extract YAML frontmatter
+let frontmatter = {};
+let recipeContent = content;
+
+const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+if (frontmatterMatch) {
+  try {
+    frontmatter = yaml.load(frontmatterMatch[1]) || {};
+    recipeContent = frontmatterMatch[2];
+  } catch (e) {
+    console.error(`Error parsing YAML frontmatter in ${slug}:`, e);
+  }
+}
+
 let recipe;
 let parseError = null;
 
 try {
-  recipe = new Recipe(content);
+  recipe = new Recipe(recipeContent);
 } catch (error) {
   console.error(`Error parsing recipe ${slug}:`, error.message);
   parseError = error.message;
   recipe = {
-    metadata: { title: slug },
+    metadata: {},
     ingredients: [],
     sections: [],
+    cookware: [],
+    timers: [],
   };
 }
+
+// Merge frontmatter with parsed metadata
+recipe.metadata = { ...recipe.metadata, ...frontmatter };
 
 const ingredients = recipe.ingredients || [];
 const cookwareList = recipe.cookware || [];
@@ -53,7 +72,7 @@ if (recipe.sections) {
   }
 }
 
-// Helper to extract text from step items
+// Helper to extract text from step items for JSON-LD
 function getStepText(items: any[]) {
   if (!items || items.length === 0) return "";
   
@@ -68,18 +87,16 @@ function getStepText(items: any[]) {
       }
       
       if (item.type === "cookware") {
-        // Look up the cookware by index
-        const cookwareItem = cookwareList[item.index];
+        const cookwareItem = cookwareList[item.value];
         const name = cookwareItem?.name || "cookware";
         return name;
       }
       
       if (item.type === "timer") {
-        // Look up the timer by index
-        const timerItem = timersList[item.index];
+        const timerItem = timersList[item.value];
         if (timerItem) {
-          const quantity = timerItem.quantity || timerItem.duration || "";
-          const unit = timerItem.unit || timerItem.units || "minutes";
+          const quantity = timerItem.duration?.value?.value || "";
+          const unit = timerItem.unit || "minutes";
           return `${quantity} ${unit}`;
         }
         return "timer";
@@ -119,8 +136,7 @@ const jsonLd = {
     let str = ing.name || "";
     if (ing.quantity?.value?.value !== undefined) {
       const qty = ing.quantity.value.value;
-      str += ` ${qty}`;
-      if (ing.unit) str += ` ${ing.unit}`;
+      str = `${qty}${ing.unit ? ` ${ing.unit}` : ""} ${str}`;
     }
     return str;
   }),
@@ -166,22 +182,6 @@ const jsonLd = {
         gap: 1rem;
         margin: 1.5rem 0;
       }
-      .recipe-content {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-        margin: 2rem 0;
-      }
-      .recipe-column {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-      }
-      @media (max-width: 768px) {
-        .recipe-content {
-          grid-template-columns: 1fr;
-        }
-      }
       .meta-item {
         background: white;
         padding: 1rem;
@@ -204,15 +204,27 @@ const jsonLd = {
         gap: 2rem;
         margin: 2rem 0;
       }
+      .recipe-column {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
       @media (max-width: 768px) {
         .recipe-content {
           grid-template-columns: 1fr;
         }
       }
+      .recipe-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
       .recipe-section h2 {
         color: #2d3436;
         border-bottom: 2px solid #ff6b6b;
         padding-bottom: 0.5rem;
+        margin-top: 0;
         margin-bottom: 1rem;
       }
       a {
