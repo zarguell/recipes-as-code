@@ -1,93 +1,258 @@
 ---
 const { steps, cookware = [], timers = [] } = Astro.props;
+
+function quantityToNumber(q) {
+  // step ingredient quantities come as { type:"fixed", value:{ type:"decimal"|"fraction", ... } }
+  if (!q) return null;
+
+  if (q.type === "fixed" && q.value?.type === "decimal" && typeof q.value.value === "number") {
+    return q.value.value;
+  }
+
+  if (q.type === "fixed" && q.value?.type === "fraction") {
+    const num = q.value.num;
+    const den = q.value.den;
+    if (typeof num === "number" && typeof den === "number" && den !== 0) return num / den;
+  }
+
+  return null;
+}
+
+function gcd(a, b) {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while (b) [a, b] = [b, a % b];
+  return a || 1;
+}
+
+// Convert decimal -> “kitchen friendly” mixed fraction (nearest common denom)
+function toNiceFraction(x) {
+  const whole = Math.floor(x + 1e-10);
+  const frac = x - whole;
+
+  if (frac < 1e-6) return { whole, num: 0, den: 1 };
+
+  const dens = [2, 3, 4, 6, 8, 12, 16];
+  let best = { num: 0, den: 1, err: Infinity };
+
+  for (const den of dens) {
+    const num = Math.round(frac * den);
+    const approx = num / den;
+    const err = Math.abs(frac - approx);
+    if (err < best.err) best = { num, den, err };
+  }
+
+  const g = gcd(best.num, best.den);
+  const num = best.num / g;
+  const den = best.den / g;
+
+  if (num === den) return { whole: whole + 1, num: 0, den: 1 };
+  return { whole, num, den };
+}
+
+function formatQty(x) {
+  if (!Number.isFinite(x)) return "";
+  if (x === 0) return "0";
+
+  const { whole, num, den } = toNiceFraction(x);
+
+  if (num === 0) return String(whole);
+  if (whole === 0) return `${num}/${den}`;
+  return `${whole} ${num}/${den}`;
+}
+
+function renderTimer(timerItem) {
+  if (!timerItem) return "timer";
+
+  const quantity = timerItem.duration?.value?.value ?? "";
+  let unit = timerItem.unit || "minutes";
+
+  // range packed into unit: minutes|4%minutes
+  if (typeof unit === "string" && unit.includes("|")) {
+    const [realUnit, rhs] = unit.split("|");
+    const m = String(rhs).match(/^(\d+)%/);
+    if (m) return `⏱️ ${quantity}-${m[1]} ${realUnit}`;
+  }
+
+  return `⏱️ ${quantity} ${unit}`;
+}
+
+function buildInstructionHtml(step) {
+  return (step.items || [])
+    .map((item) => {
+      if (item.type === "text") return item.value;
+
+      if (item.type === "ingredient") {
+        // keep instruction natural language (name only)
+        return item.displayName || "";
+      }
+
+      if (item.type === "cookware") {
+        const cw = cookware[item.value];
+        return `<code class="cookware">${cw?.name || "cookware"}</code>`;
+      }
+
+      if (item.type === "timer") {
+        const t = timers[item.value];
+        return `<code class="timer">${renderTimer(t)}</code>`;
+      }
+
+      return "";
+    })
+    .join("");
+}
+
+function ingredientsUsedInStep(step) {
+  const seen = new Set();
+  const items = (step.items || []).filter((i) => i.type === "ingredient");
+  const result = [];
+
+  for (const i of items) {
+    const name = i.displayName || "";
+    const base = quantityToNumber(i.itemQuantity); // numeric, for scaling
+    const unit = i.itemUnit || "";
+    const key = `${name}__${base ?? ""}__${unit}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ name, base, unit });
+  }
+
+  return result;
+}
 ---
 
 <ol class="steps">
-  {steps.map((step: any, idx: number) => {
-    // Build the step text here in the map, with direct access to cookware/timers
-    const stepHtml = (step.items || [])
-      .map((item: any) => {
-        if (item.type === "text") {
-          return item.value;
-        }
-        
-        if (item.type === "ingredient") {
-          return item.displayName || item.name || "";
-        }
-        
-        if (item.type === "cookware") {
-          const cookwareItem = cookware[item.value];
-          const name = cookwareItem?.name || "cookware";
-          return `<code class="cookware">${name}</code>`;
-        }
-        
-        if (item.type === "timer") {
-          const timerItem = timers[item.value];
-          if (timerItem) {
-            const quantity = timerItem.duration?.value?.value || "";
-            let unit = timerItem.unit || "minutes";
-            
-            // Check if unit contains a range (e.g., "minutes|4%minutes")
-            if (unit.includes('|')) {
-              const parts = unit.split('|');
-              const realUnit = parts[0]; // "minutes"
-              const secondPart = parts[1]; // "4%minutes"
-              
-              // Extract the second number from "4%minutes"
-              const match = secondPart.match(/^(\d+)%/);
-              if (match) {
-                const max = match[1];
-                return `<code class="timer">⏱️ ${quantity}-${max} ${realUnit}</code>`;
-              }
-            }
-            
-            // Normal single value
-            return `<code class="timer">⏱️ ${quantity} ${unit}</code>`;
-          }
-          return `<code class="timer">timer</code>`;
-        }
-        
-        return "";
-      })
-      .join("");
-    
+  {steps.map((step, idx) => {
+    const instructionHtml = buildInstructionHtml(step);
+    const used = ingredientsUsedInStep(step);
+
     return (
-      <li class="step">
-        <input type="checkbox" class="step-checkbox" id={`step-${idx}`} data-step-id={idx} />
+      <li class="step" data-step-root>
+        <input type="checkbox" class="step-checkbox" id={`step-${idx}`} data-step-toggle />
         <label for={`step-${idx}`} class="step-label">
           <div class="step-number">{idx + 1}</div>
-          <div class="step-content" data-full-text={stepHtml} set:html={stepHtml} />
+
+          <div class="step-body">
+            <div class="step-instruction" set:html={instructionHtml} />
+
+            {used.length > 0 && (
+              <div class="step-used">
+                {used.map((u) => (
+                  <button
+                    type="button"
+                    class="used-chip"
+                    data-chip
+                    aria-pressed="false"
+                    title="Click to toggle"
+                  >
+                    <span class="used-name">{u.name}</span>
+
+                    <span
+                      class="used-qty"
+                      data-role="step-qty"
+                      data-base={u.base !== null && u.base !== undefined ? String(u.base) : ""}
+                      data-unit={u.unit}
+                    >
+                      {u.base !== null && u.base !== undefined
+                        ? `${formatQty(u.base)}${u.unit ? ` ${u.unit}` : ""}`
+                        : ""}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </label>
       </li>
     );
   })}
 </ol>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const checkboxes = document.querySelectorAll('.step-checkbox');
-    
-    checkboxes.forEach((checkbox) => {
-      checkbox.addEventListener('change', (e) => {
-        const target = e.target as HTMLInputElement;
-        const stepContent = target.parentElement?.querySelector('.step-content') as HTMLElement;
-        
-        if (!stepContent) return;
-        
-        const fullText = stepContent.getAttribute('data-full-text') || '';
-        const textOnly = stepContent.textContent || '';
-        
-        if (target.checked) {
-          // Truncate to first 30 characters
-          const truncated = textOnly.substring(0, 30) + (textOnly.length > 30 ? '...' : '');
-          stepContent.textContent = truncated;
-        } else {
-          // Restore full HTML
-          stepContent.innerHTML = fullText;
-        }
-      });
-    });
+<script is:inline>
+  // Collapse steps when checked
+  document.addEventListener("change", (e) => {
+    const cb = e.target?.closest?.("[data-step-toggle]");
+    if (!cb) return;
+
+    const root = cb.closest("[data-step-root]");
+    if (!root) return;
+
+    root.classList.toggle("collapsed", cb.checked);
   });
+
+  // Toggle ingredient chips (per-step)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-chip]");
+    if (!btn) return;
+
+    const pressed = btn.getAttribute("aria-pressed") === "true";
+    btn.setAttribute("aria-pressed", pressed ? "false" : "true");
+    btn.classList.toggle("done", !pressed);
+  });
+
+  // Apply recipe scale to per-step ingredient chips too (listens to the recipe page scale input)
+  (function attachScaling() {
+    const scaleInput = document.getElementById("recipeScaleInput");
+    if (!scaleInput) return; // not on recipe page
+
+    function gcd(a, b) {
+      a = Math.abs(a); b = Math.abs(b);
+      while (b) [a, b] = [b, a % b];
+      return a || 1;
+    }
+
+    function toNiceFraction(x) {
+      const whole = Math.floor(x + 1e-10);
+      const frac = x - whole;
+      if (frac < 1e-6) return { whole, num: 0, den: 1 };
+
+      const dens = [2, 3, 4, 6, 8, 12, 16];
+      let best = { num: 0, den: 1, err: Infinity };
+
+      for (const den of dens) {
+        const num = Math.round(frac * den);
+        const approx = num / den;
+        const err = Math.abs(frac - approx);
+        if (err < best.err) best = { num, den, err };
+      }
+
+      const g = gcd(best.num, best.den);
+      const num = best.num / g;
+      const den = best.den / g;
+      if (num === den) return { whole: whole + 1, num: 0, den: 1 };
+      return { whole, num, den };
+    }
+
+    function formatQty(x) {
+      if (!Number.isFinite(x)) return "";
+      if (x === 0) return "0";
+
+      const { whole, num, den } = toNiceFraction(x);
+      if (num === 0) return String(whole);
+      if (whole === 0) return `${num}/${den}`;
+      return `${whole} ${num}/${den}`;
+    }
+
+    function applyScale(mult) {
+      const els = document.querySelectorAll('[data-role="step-qty"]');
+      els.forEach((el) => {
+        const rawBase = el.getAttribute("data-base");
+        const unit = el.getAttribute("data-unit") || "";
+        const base = rawBase ? Number(rawBase) : NaN;
+        if (!Number.isFinite(base)) return;
+
+        el.textContent = `${formatQty(base * mult)}${unit ? ` ${unit}` : ""}`;
+      });
+    }
+
+    function getMult() {
+      const mult = Number(scaleInput.value || "1");
+      return Number.isFinite(mult) && mult > 0 ? mult : 1;
+    }
+
+    scaleInput.addEventListener("input", () => applyScale(getMult()));
+    applyScale(getMult());
+  })();
 </script>
 
 <style>
@@ -98,89 +263,140 @@ const { steps, cookware = [], timers = [] } = Astro.props;
   }
 
   .step {
-    display: flex;
+    display: grid;
+    grid-template-columns: 20px 1fr;
     gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin 0.3s ease-out;
-    max-height: 500px;
+    margin-bottom: 1.25rem;
+    align-items: start;
+    min-width: 0;
   }
 
   .step-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
     width: 20px;
     height: 20px;
+    margin: 0.35rem 0 0 0;
+    border: 2px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    display: grid;
+    place-content: center;
     cursor: pointer;
-    flex-shrink: 0;
-    margin-top: 0.25rem;
   }
 
-  .step-checkbox:checked ~ .step-label {
-    opacity: 0.3;
-  }
-
-  .step-checkbox:checked ~ .step-label .step-content {
-    text-decoration: line-through;
-  }
-
-  /* Collapse the step when checked */
   .step-checkbox:checked {
-    margin-top: 0;
+    background: #ff6b6b;
+    border-color: #ff6b6b;
   }
 
-  .step:has(.step-checkbox:checked) {
-    max-height: 30px;
-    margin-bottom: 0.5rem;
+  .step-checkbox:checked::after {
+    content: "✓";
+    color: white;
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 1;
   }
 
   .step-label {
-    display: flex;
-    gap: 1rem;
-    flex: 1;
+    display: grid;
+    grid-template-columns: 2.25rem 1fr;
+    gap: 0.75rem;
     cursor: pointer;
     min-width: 0;
   }
 
   .step-number {
-    flex-shrink: 0;
     width: 2rem;
     height: 2rem;
     background: #ff6b6b;
     color: white;
-    border-radius: 50%;
+    border-radius: 999px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    transition: background 0.2s;
+    margin-top: 0.1rem;
   }
 
-  .step-checkbox:checked ~ .step-label .step-number {
-    background: #95a5a6;
+  .step-body {
+    min-width: 0;
   }
 
-  .step-content {
-    padding-top: 0.25rem;
+  .step-instruction {
     color: #2d3436;
     line-height: 1.6;
-    min-width: 0;
-    flex: 1;
   }
 
-  .step-content :global(code) {
-    background: #f8f9fa;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-family: 'Monaco', 'Courier New', monospace;
+  .step-used {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .used-chip {
+    border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    cursor: pointer;
+    max-width: 100%;
+  }
+
+  .used-name {
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .used-qty {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     font-size: 0.9em;
-    border: 1px solid #e9ecef;
+    color: #374151;
+    opacity: 0.9;
+    white-space: nowrap;
   }
 
-  .step-content :global(code.cookware) {
+  .used-chip.done {
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+
+  .step.collapsed {
+    margin-bottom: 0.5rem;
+  }
+
+  .step.collapsed .step-used {
+    display: none;
+  }
+
+  .step.collapsed .step-instruction {
+    opacity: 0.45;
+    text-decoration: line-through;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .step-instruction :global(code) {
+    background: #f8f9fa;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    font-size: 0.9em;
+  }
+
+  .step-instruction :global(code.cookware) {
     background: #e3f2fd;
     color: #1976d2;
     border-color: #bbdefb;
   }
 
-  .step-content :global(code.timer) {
+  .step-instruction :global(code.timer) {
     background: #fff3e0;
     color: #e65100;
     border-color: #ffcc80;

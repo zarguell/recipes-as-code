@@ -75,44 +75,37 @@ if (recipe.sections) {
 // Helper to extract text from step items for JSON-LD
 function getStepText(items: any[]) {
   if (!items || items.length === 0) return "";
-  
+
   return items
     .map((item) => {
-      if (item.type === "text") {
-        return item.value;
-      }
-      
-      if (item.type === "ingredient") {
-        return item.displayName || item.name || "";
-      }
-      
+      if (item.type === "text") return item.value;
+      if (item.type === "ingredient") return item.displayName || item.name || "";
+
       if (item.type === "cookware") {
         const cookwareItem = cookwareList[item.value];
-        const name = cookwareItem?.name || "cookware";
-        return name;
+        return cookwareItem?.name || "cookware";
       }
-      
+
       if (item.type === "timer") {
         const timerItem = timersList[item.value];
-        if (timerItem) {
-          const quantity = timerItem.duration?.value?.value || "";
-          const unit = timerItem.unit || "minutes";
-          return `${quantity} ${unit}`;
-        }
-        return "timer";
+        if (!timerItem) return "timer";
+        const quantity = timerItem.duration?.value?.value || "";
+        const unit = timerItem.unit || "minutes";
+        return `${quantity} ${unit}`;
       }
-      
+
       return "";
     })
     .join("");
 }
 
-const imageUrl = recipe.metadata.image?.replace(/^["']|["']$/g, '') || null;
+const imageUrl = recipe.metadata.image?.replace(/^["']|["']$/g, "") || null;
 const tags = recipe.metadata.tags || [];
 const source = recipe.metadata.source;
 
 // Default placeholder SVG
-const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
+const defaultImage =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
 
 // Generate JSON-LD schema
 const jsonLd = {
@@ -128,10 +121,7 @@ const jsonLd = {
   recipeCategory: recipe.metadata.category || null,
   recipeCuisine: recipe.metadata.cuisine || null,
   keywords: tags.join(", "),
-  author: {
-    "@type": "Person",
-    name: recipe.metadata.author || "Unknown",
-  },
+  author: { "@type": "Person", name: recipe.metadata.author || "Unknown" },
   recipeIngredient: ingredients.map((ing) => {
     let str = ing.name || "";
     if (ing.quantity?.value?.value !== undefined) {
@@ -164,7 +154,7 @@ const jsonLd = {
         line-height: 1.6;
       }
       .recipe-header {
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
       }
       .back-link {
         display: inline-block;
@@ -179,26 +169,78 @@ const jsonLd = {
         color: #2d3436;
         margin: 0 0 0.5rem;
       }
-      
-      /* New flex layout for image and meta */
+
+      /* Keep controls scoped to recipe page */
+      .recipe-controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 1rem 0 0.5rem;
+      }
+
+      .recipe-controls .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 0;
+        cursor: pointer;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        font-weight: 700;
+        background: #ff6b6b;
+        color: white;
+      }
+
+      .recipe-controls .button.secondary {
+        background: #0984e3;
+      }
+
+      .recipe-controls .scale {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        border: 2px solid #dfe6e9;
+        padding: 0.4rem 0.6rem;
+        border-radius: 8px;
+      }
+
+      .recipe-controls .scale-label {
+        color: #636e72;
+        font-size: 0.9rem;
+      }
+
+      .recipe-controls #recipeScaleInput {
+        width: 5.5rem;
+        border: 0;
+        outline: none;
+        font-size: 1rem;
+      }
+
+      .recipe-controls .scale-suffix {
+        color: #636e72;
+        font-weight: 700;
+      }
+
+      /* Image + meta */
       .hero-section {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2rem;
         margin: 1.5rem 0;
       }
-      
       @media (max-width: 768px) {
         .hero-section {
           grid-template-columns: 1fr;
         }
       }
-      
+
       .recipe-image-container {
         display: flex;
         align-items: flex-start;
       }
-      
+
       .recipe-image {
         max-width: 100%;
         width: 100%;
@@ -206,14 +248,14 @@ const jsonLd = {
         border-radius: 8px;
         object-fit: cover;
       }
-      
+
       .recipe-meta {
         display: grid;
         grid-template-columns: 1fr;
         gap: 1rem;
         align-content: start;
       }
-      
+
       .meta-item {
         background: white;
         padding: 1rem;
@@ -231,7 +273,7 @@ const jsonLd = {
         color: #2d3436;
         font-size: 1.25rem;
       }
-      
+
       .recipe-content {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -248,12 +290,14 @@ const jsonLd = {
           grid-template-columns: 1fr;
         }
       }
+
       .recipe-section {
         background: white;
         padding: 1.5rem;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
+
       .recipe-section h2 {
         color: #2d3436;
         border-bottom: 2px solid #ff6b6b;
@@ -261,6 +305,7 @@ const jsonLd = {
         margin-top: 0;
         margin-bottom: 1rem;
       }
+
       a {
         color: #0984e3;
         text-decoration: none;
@@ -268,12 +313,14 @@ const jsonLd = {
       a:hover {
         text-decoration: underline;
       }
+
       .tags {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
         margin: 1rem 0;
       }
+
       .tag {
         background: #e3f2fd;
         color: #1976d2;
@@ -282,9 +329,11 @@ const jsonLd = {
         font-size: 0.85rem;
         text-decoration: none;
       }
+
       .tag:hover {
         background: #bbdefb;
       }
+
       .source {
         background: #fff3e0;
         border-left: 3px solid #ff9800;
@@ -292,20 +341,36 @@ const jsonLd = {
         margin: 1rem 0;
         border-radius: 4px;
       }
+
       .source-label {
         font-size: 0.85rem;
         color: #e65100;
         font-weight: bold;
         margin-bottom: 0.25rem;
       }
+
+      @media print {
+        .back-link,
+        .recipe-controls,
+        .tags,
+        .source {
+          display: none !important;
+        }
+        body {
+          background: white;
+          padding: 0;
+          max-width: none;
+        }
+      }
     </style>
   </head>
+
   <body>
     <div class="recipe-header">
       <a href={import.meta.env.BASE_URL} class="back-link">← Back to recipes</a>
       <h1>{recipe.metadata.title || slug}</h1>
       {recipe.metadata.description && <p>{recipe.metadata.description}</p>}
-      
+
       {tags.length > 0 && (
         <div class="tags">
           {tags.map((tag: string) => (
@@ -315,14 +380,116 @@ const jsonLd = {
           ))}
         </div>
       )}
-      
+
       {source && (
         <div class="source">
           <div class="source-label">Source:</div>
           <a href={source} target="_blank" rel="noopener noreferrer">{source}</a>
         </div>
       )}
+
+      <div class="recipe-controls" data-recipe-controls>
+        <button type="button" class="button secondary" id="recipePrintBtn">🖨️ Print</button>
+
+        <label class="scale">
+          <span class="scale-label">Scale</span>
+          <input
+            id="recipeScaleInput"
+            type="number"
+            inputmode="decimal"
+            step="0.1"
+            min="0.1"
+            value="1"
+          />
+          <span class="scale-suffix">×</span>
+        </label>
+      </div>
     </div>
+
+    <script is:inline>
+      const controls = document.querySelector("[data-recipe-controls]");
+      if (controls) {
+        const printBtn = document.getElementById("recipePrintBtn");
+        const scaleInput = document.getElementById("recipeScaleInput");
+
+        // Greatest common divisor for simplifying fractions
+        function gcd(a, b) {
+          a = Math.abs(a); b = Math.abs(b);
+          while (b) [a, b] = [b, a % b];
+          return a || 1;
+        }
+
+        // Convert decimal -> nice fraction (limited denominators)
+        function toNiceFraction(x) {
+          // handle whole numbers
+          const whole = Math.floor(x + 1e-10);
+          const frac = x - whole;
+
+          if (frac < 1e-6) return { whole, num: 0, den: 1 };
+
+          // common kitchen denominators
+          const dens = [2, 3, 4, 6, 8, 12, 16];
+          let best = { num: 0, den: 1, err: Infinity };
+
+          for (const den of dens) {
+            const num = Math.round(frac * den);
+            const approx = num / den;
+            const err = Math.abs(frac - approx);
+            if (err < best.err) best = { num, den, err };
+          }
+
+          // simplify
+          const g = gcd(best.num, best.den);
+          const num = best.num / g;
+          const den = best.den / g;
+
+          // handle rounding to next whole (e.g. 15/16 * 16)
+          if (num === den) return { whole: whole + 1, num: 0, den: 1 };
+
+          return { whole, num, den };
+        }
+
+        function formatQty(x) {
+          // show 0 as 0
+          if (!Number.isFinite(x)) return "";
+          if (x === 0) return "0";
+
+          const { whole, num, den } = toNiceFraction(x);
+
+          if (num === 0) return String(whole);
+          if (whole === 0) return `${num}/${den}`;
+          return `${whole} ${num}/${den}`;
+        }
+
+        function applyScale(mult) {
+          const ingredientRoot = document.getElementById("ingredientList");
+          if (!ingredientRoot) return;
+
+          const els = ingredientRoot.querySelectorAll('[data-role="qty"]');
+          els.forEach((el) => {
+            const rawBase = el.getAttribute("data-base");
+            const unit = el.getAttribute("data-unit") || "";
+            const base = rawBase ? Number(rawBase) : NaN;
+            if (!Number.isFinite(base)) return;
+
+            const scaled = base * mult;
+            el.textContent = `${formatQty(scaled)}${unit ? ` ${unit}` : ""}`;
+          });
+        }
+
+        if (printBtn) printBtn.addEventListener("click", () => window.print());
+
+        if (scaleInput) {
+          scaleInput.addEventListener("input", () => {
+            const mult = Number(scaleInput.value || "1");
+            applyScale(Number.isFinite(mult) && mult > 0 ? mult : 1);
+          });
+
+          applyScale(Number(scaleInput.value || "1") || 1);
+        }
+      }
+    </script>
+
 
     <div class="hero-section">
       <div class="recipe-image-container">
@@ -330,11 +497,11 @@ const jsonLd = {
           src={imageUrl || defaultImage}
           alt={recipe.metadata.title || slug}
           class="recipe-image"
-          onerror={`this.onerror=null;this.src="${defaultImage.replace(/'/g, '%27')}";`}
+          onerror={`this.onerror=null;this.src="${defaultImage.replace(/'/g, "%27")}";`}
           loading="lazy"
         />
       </div>
-      
+
       <div class="recipe-meta">
         {recipe.metadata?.servings && (
           <div class="meta-item">
@@ -342,18 +509,21 @@ const jsonLd = {
             <div class="meta-value">{recipe.metadata.servings}</div>
           </div>
         )}
+
         {recipe.metadata?.["prep-time"] && (
           <div class="meta-item">
             <div class="meta-label">Prep Time</div>
             <div class="meta-value">{recipe.metadata["prep-time"]}</div>
           </div>
         )}
+
         {recipe.metadata?.["cook-time"] && (
           <div class="meta-item">
             <div class="meta-label">Cook Time</div>
             <div class="meta-value">{recipe.metadata["cook-time"]}</div>
           </div>
         )}
+
         {recipe.metadata?.["total-time"] && (
           <div class="meta-item">
             <div class="meta-label">Total Time</div>
@@ -369,7 +539,7 @@ const jsonLd = {
           <h2>🥘 Ingredients</h2>
           <IngredientList ingredients={ingredients} />
         </div>
-        
+
         {cookwareList.length > 0 && (
           <div class="recipe-section">
             <h2>🍳 Cookware</h2>
@@ -377,7 +547,7 @@ const jsonLd = {
           </div>
         )}
       </div>
-      
+
       <div class="recipe-column">
         <div class="recipe-section">
           <h2>👨‍🍳 Instructions</h2>

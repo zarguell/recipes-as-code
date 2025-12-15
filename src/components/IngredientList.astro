@@ -1,23 +1,44 @@
 ---
 const { ingredients } = Astro.props;
+
+// Normalize to a numeric base for scaling + store fraction parts when available
+function getBaseQty(ing: any) {
+  const v = ing?.quantity?.value?.value;
+
+  // Decimal quantity from parser
+  if (typeof v === "number") {
+    return { base: v, kind: "decimal", num: "", den: "" };
+  }
+
+  // Fraction quantity from parser
+  if (v && v.type === "fraction" && typeof v.num === "number" && typeof v.den === "number") {
+    return { base: v.num / v.den, kind: "fraction", num: String(v.num), den: String(v.den) };
+  }
+
+  // Some recipes may not have numeric quantity
+  return { base: null, kind: "", num: "", den: "" };
+}
 ---
 
-<ul class="ingredient-list">
+<ul class="ingredient-list" id="ingredientList">
   {ingredients.map((ing: any, idx: number) => {
-    let quantityText = "";
-    if (ing.quantity?.value?.value !== undefined) {
-      const qty = ing.quantity.value.value;
-      quantityText = `${qty}${ing.unit ? ` ${ing.unit}` : ""}`;
-    }
-    
+    const q = getBaseQty(ing);
+    const unit = ing.unit || "";
+
     return (
       <li class="ingredient">
         <input type="checkbox" class="ingredient-checkbox" id={`ingredient-${idx}`} />
         <label for={`ingredient-${idx}`} class="ingredient-content">
           <span class="ingredient-name">{ing.name}</span>
-          {quantityText && (
-            <span class="ingredient-quantity">{quantityText}</span>
-          )}
+
+          <span
+            class="ingredient-quantity"
+            data-role="qty"
+            data-base={q.base !== null ? String(q.base) : ""}
+            data-unit={unit}
+          >
+            {q.base !== null ? `${q.base}${unit ? ` ${unit}` : ""}` : ""}
+          </span>
         </label>
       </li>
     );
@@ -62,6 +83,8 @@ const { ingredients } = Astro.props;
     align-items: center;
     flex: 1;
     cursor: pointer;
+    gap: 1rem;
+    min-width: 0;
   }
 
   .ingredient-name {
@@ -75,5 +98,6 @@ const { ingredients } = Astro.props;
     background: #f5f5f5;
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
+    white-space: nowrap;
   }
 </style>
