@@ -77,29 +77,33 @@ function renderTimer(timerItem) {
   return `⏱️ ${quantity} ${unit}`;
 }
 
-function buildInstructionHtml(step) {
+function formatIngredientHuman(ing) {
+  const name = ing?.displayName || ing?.name || "";
+  if (!name) return "";
+
+  const qty = ing?.quantity?.value?.value ?? ing?.quantity?.value ?? ing?.quantity;
+  const unit = ing?.unit || ing?.units || "";
+
+  // IMPORTANT: ignore preparation notes (often stored separately by parsers)
+  // e.g., ing.preparation / ing.note / ing.modifiers — do not append anything.
+
+  const qtyNum = Number(qty);
+  const hasQty = Number.isFinite(qtyNum);
+
+  if (!hasQty) return name;
+  return `${qtyNum}${unit ? ` ${unit}` : ""} ${name}`;
+}
+
+// Keep this function for JSON-LD usage only
+function getStepText(step) {
   return (step.items || [])
     .map((item) => {
       if (item.type === "text") return item.value;
-
-      if (item.type === "ingredient") {
-        // keep instruction natural language (name only)
-        return item.displayName || "";
-      }
-
-      if (item.type === "cookware") {
-        const cw = cookware[item.value];
-        return `<code class="cookware">${cw?.name || "cookware"}</code>`;
-      }
-
-      if (item.type === "timer") {
-        const t = timers[item.value];
-        return `<code class="timer">${renderTimer(t)}</code>`;
-      }
-
+      if (item.type === "ingredient") return item.displayName || "";
       return "";
     })
-    .join("");
+    .join("")
+    .trim();
 }
 
 function ingredientsUsedInStep(step) {
@@ -123,7 +127,6 @@ function ingredientsUsedInStep(step) {
 
 <ol class="steps">
   {steps.map((step, idx) => {
-    const instructionHtml = buildInstructionHtml(step);
     const used = ingredientsUsedInStep(step);
 
     return (
@@ -133,7 +136,26 @@ function ingredientsUsedInStep(step) {
           <div class="step-number">{idx + 1}</div>
 
           <div class="step-body">
-            <div class="step-instruction" set:html={instructionHtml} />
+            <p class="step-instruction">
+              {step.items.map((item) => {
+                if (item.type === "text") return item.value;
+
+                if (item.type === "ingredient")
+                  return <code class="tok tok-ing">{formatIngredientHuman(item)}</code>;
+
+                if (item.type === "cookware")
+                  return <code class="tok tok-cw">{cookware[item.value]?.name ?? "cookware"}</code>;
+
+                if (item.type === "timer") {
+                  const t = timers[item.value];
+                  const q = t?.duration?.value?.value ?? "";
+                  const u = t?.unit ?? "minutes";
+                  return <code class="tok tok-timer">{`${q} ${u}`}</code>;
+                }
+
+                return "";
+              })}
+            </p>
 
             {used.length > 0 && (
               <div class="step-used">
@@ -382,7 +404,7 @@ function ingredientsUsedInStep(step) {
     max-width: 100%;
   }
 
-  .step-instruction :global(code) {
+  .step-instruction :global(.tok) {
     background: var(--surface);
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
@@ -390,13 +412,20 @@ function ingredientsUsedInStep(step) {
     font-size: 0.9em;
   }
 
-  .step-instruction :global(code.cookware) {
+  .step-instruction :global(.tok.tok-ing) {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+    font-weight: 500;
+  }
+
+  .step-instruction :global(.tok.tok-cw) {
     background: var(--surface);
     color: var(--accent-2);
     border-color: var(--accent-2);
   }
 
-  .step-instruction :global(code.timer) {
+  .step-instruction :global(.tok.tok-timer) {
     background: var(--surface);
     color: var(--accent);
     border-color: var(--accent);
