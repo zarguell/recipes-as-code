@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "copy-recipes": "cp -r recipes public/",
+    "prebuild": "npm run copy-recipes",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"

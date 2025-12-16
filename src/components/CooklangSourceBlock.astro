@@ -1,0 +1,123 @@
+---
+interface Props {
+  slug: string;
+  text: string;
+}
+
+const { slug, text } = Astro.props;
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<section class="recipe-section cooklang-source">
+  <header>
+    <h2>Cooklang source</h2>
+    <a
+      href={`${baseUrl}recipes/${slug}.cook`}
+      download={`${slug}.cook`}
+      class="download-btn"
+    >
+      Download
+    </a>
+  </header>
+  <pre><code>{text}</code></pre>
+</section>
+
+<style>
+  .cooklang-source header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .cooklang-source h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.5rem;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border: 2px solid var(--accent);
+  }
+
+  .download-btn:hover {
+    background: transparent;
+    color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .cooklang-source pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .cooklang-source code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  /* Custom scrollbar for webkit browsers */
+  .cooklang-source pre::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .cooklang-source pre::-webkit-scrollbar-track {
+    background: var(--surface);
+    border-radius: 4px;
+  }
+
+  .cooklang-source pre::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 4px;
+  }
+
+  .cooklang-source pre::-webkit-scrollbar-thumb:hover {
+    background: var(--border);
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .cooklang-source header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .download-btn {
+      text-align: center;
+      justify-content: center;
+    }
+
+    .cooklang-source pre {
+      font-size: 0.85rem;
+      padding: 0.75rem;
+    }
+  }
+</style>

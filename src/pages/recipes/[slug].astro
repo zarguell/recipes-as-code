@@ -8,6 +8,7 @@ import JsonLdSchema from "../../components/JsonLdSchema.astro";
 import IngredientList from "../../components/IngredientList.astro";
 import RecipeSteps from "../../components/RecipeSteps.astro";
 import CookwareList from "../../components/CookwareList.astro";
+import CooklangSourceBlock from "../../components/CooklangSourceBlock.astro";
 import ThemeToggle from "../../components/ThemeToggle.astro";
 import Layout from "../../layouts/Layout.astro";
 
@@ -260,6 +261,8 @@ const jsonLd = {
       </div>
     </div>
   </div>
+
+  <CooklangSourceBlock slug={slug} text={content} />
 
   <Fragment slot="scripts">
     <script is:inline>
