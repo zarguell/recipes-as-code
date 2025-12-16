@@ -1,0 +1,508 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ThemeToggle from "../components/ThemeToggle.astro";
+
+const title = "Shopping List";
+---
+
+<Layout title={title}>
+  <Fragment slot="theme-toggle">
+    <ThemeToggle />
+  </Fragment>
+
+  <header class="page-header">
+    <div class="header-top">
+      <a href={import.meta.env.BASE_URL} class="back-button">← Back to recipes</a>
+      <h1>🛒 Shopping List</h1>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="button secondary" id="clearListBtn">
+        🗑️ Clear All
+      </button>
+    </div>
+  </header>
+
+  <div class="shopping-list-container">
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">🛒</div>
+      <h2>Your shopping list is empty</h2>
+      <p>Add recipes from the recipe pages to build your shopping list!</p>
+      <a href={import.meta.env.BASE_URL} class="button primary">
+        Browse Recipes
+      </a>
+    </div>
+
+    <div id="shopping-list-content" class="shopping-list-content" style="display: none;">
+      <div class="shopping-list-header">
+        <h2>Shopping List</h2>
+        <div class="list-stats" id="listStats"></div>
+      </div>
+
+      <div class="shopping-list-grid">
+        <div class="ingredients-section">
+          <h3>Aggregated Ingredients</h3>
+          <div id="aggregated-ingredients" class="aggregated-list"></div>
+        </div>
+
+        <div class="recipes-section">
+          <h3>Recipes</h3>
+          <div id="recipes-list" class="recipes-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Fragment slot="scripts">
+    <script is:inline>
+      class ShoppingListUI {
+        constructor() {
+          this.init();
+        }
+
+        aggregateIngredients() {
+          const aggregated = {};
+
+          window.shoppingList.list.recipes.forEach(recipe => {
+            recipe.ingredients.forEach(ingredient => {
+              if (!ingredient.name) return;
+
+              const key = `${ingredient.name.toLowerCase().trim()}__${ingredient.unit || ''}`;
+
+              if (!aggregated[key]) {
+                aggregated[key] = {
+                  name: ingredient.name,
+                  unit: ingredient.unit || '',
+                  baseQuantity: 0
+                };
+              }
+
+              // Add base quantity if available
+              if (ingredient.baseQuantity !== null && ingredient.baseQuantity !== undefined) {
+                aggregated[key].baseQuantity += ingredient.baseQuantity;
+              }
+            });
+          });
+
+          return Object.values(aggregated);
+        }
+
+        formatQuantity(quantity) {
+          if (!Number.isFinite(quantity)) return '';
+
+          // Nice fraction formatting (reused from recipe page)
+          function gcd(a, b) {
+            a = Math.abs(a); b = Math.abs(b);
+            while (b) [a, b] = [b, a % b];
+            return a || 1;
+          }
+
+          function toNiceFraction(x) {
+            const whole = Math.floor(x + 1e-10);
+            const frac = x - whole;
+
+            if (frac < 1e-6) return { whole, num: 0, den: 1 };
+
+            const dens = [2, 3, 4, 6, 8, 12, 16];
+            let best = { num: 0, den: 1, err: Infinity };
+
+            for (const den of dens) {
+              const num = Math.round(frac * den);
+              const approx = num / den;
+              const err = Math.abs(frac - approx);
+              if (err < best.err) best = { num, den, err };
+            }
+
+            const g = gcd(best.num, best.den);
+            const num = best.num / g;
+            const den = best.den / g;
+
+            if (num === den) return { whole: whole + 1, num: 0, den: 1 };
+            return { whole, num, den };
+          }
+
+          function formatQty(x) {
+            if (!Number.isFinite(x)) return "";
+            if (x === 0) return "0";
+
+            const { whole, num, den } = toNiceFraction(x);
+
+            if (num === 0) return String(whole);
+            if (whole === 0) return `${num}/${den}`;
+            return `${whole} ${num}/${den}`;
+          }
+
+          return formatQty(quantity);
+        }
+
+        render() {
+          const emptyState = document.getElementById('empty-state');
+          const content = document.getElementById('shopping-list-content');
+          const recipesList = document.getElementById('recipes-list');
+          const aggregatedIngredients = document.getElementById('aggregated-ingredients');
+          const listStats = document.getElementById('listStats');
+
+          if (!window.shoppingList || !window.shoppingList.list.recipes.length) {
+            emptyState.style.display = 'block';
+            content.style.display = 'none';
+            return;
+          }
+
+          emptyState.style.display = 'none';
+          content.style.display = 'block';
+
+          // Update stats
+          const totalIngredients = window.shoppingList.list.recipes.reduce((sum, recipe) =>
+            sum + (recipe.ingredients ? recipe.ingredients.length : 0), 0);
+          listStats.textContent = `${window.shoppingList.list.recipes.length} recipe${window.shoppingList.list.recipes.length !== 1 ? 's' : ''}, ${totalIngredients} ingredient${totalIngredients !== 1 ? 's' : ''}`;
+
+          // Render recipes list
+          recipesList.innerHTML = '';
+          window.shoppingList.list.recipes.forEach(recipe => {
+            const recipeItem = document.createElement('div');
+            recipeItem.className = 'recipe-item';
+            recipeItem.innerHTML = `
+              <span class="recipe-title">${recipe.title}</span>
+              <button type="button" class="remove-recipe" data-slug="${recipe.slug}" title="Remove recipe">×</button>
+            `;
+            recipesList.appendChild(recipeItem);
+          });
+
+          // Render aggregated ingredients with checkboxes
+          const aggregated = this.aggregateIngredients();
+          aggregatedIngredients.innerHTML = '';
+
+          if (aggregated.length === 0) {
+            aggregatedIngredients.innerHTML = '<p class="no-ingredients">No ingredients to show</p>';
+          } else {
+            // Sort by name
+            aggregated.sort((a, b) => a.name.localeCompare(b.name));
+
+            aggregated.forEach((ingredient, index) => {
+              const ingredientDiv = document.createElement('div');
+              ingredientDiv.className = 'aggregated-item';
+
+              const quantityText = ingredient.baseQuantity > 0
+                ? `${this.formatQuantity(ingredient.baseQuantity)}${ingredient.unit ? ' ' + ingredient.unit : ''} `
+                : '';
+
+              ingredientDiv.innerHTML = `
+                <div class="ingredient-main">
+                  <input type="checkbox" id="ingredient-${index}" class="ingredient-checkbox">
+                  <label for="ingredient-${index}" class="ingredient-label">
+                    <span class="ingredient-quantity">${quantityText}</span>
+                    <span class="ingredient-name">${ingredient.name}</span>
+                  </label>
+                </div>
+              `;
+              aggregatedIngredients.appendChild(ingredientDiv);
+            });
+          }
+        }
+
+        init() {
+          // Wait a bit for global shopping list to be ready
+          setTimeout(() => {
+            this.render();
+
+            // Attach event listeners
+            document.getElementById('clearListBtn').addEventListener('click', () => {
+              if (window.shoppingList.list.recipes.length > 0 && confirm('Are you sure you want to clear your entire shopping list?')) {
+                window.shoppingList.clearAll();
+                this.render();
+              }
+            });
+
+            // Handle recipe removal
+            document.getElementById('recipes-list').addEventListener('click', (e) => {
+              if (e.target.matches('.remove-recipe')) {
+                const slug = e.target.getAttribute('data-slug');
+                window.shoppingList.removeRecipe(slug);
+                this.render();
+              }
+            });
+
+            // Handle ingredient checkboxes
+            document.getElementById('aggregated-ingredients').addEventListener('change', (e) => {
+              if (e.target.matches('.ingredient-checkbox')) {
+                const label = e.target.nextElementSibling;
+                if (label) {
+                  label.classList.toggle('checked', e.target.checked);
+                }
+              }
+            });
+
+          }, 100);
+        }
+      }
+
+      // Initialize shopping list UI only on this page
+      if (document.querySelector('.shopping-list-container')) {
+        const shoppingListUI = new ShoppingListUI();
+      }
+    </script>
+  </Fragment>
+</Layout>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .header-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .shopping-list-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--muted);
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+  }
+
+  .empty-state h2 {
+    margin-bottom: 1rem;
+    color: var(--text);
+  }
+
+  .empty-state p {
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+  }
+
+  .shopping-list-content {
+    display: block;
+  }
+
+  .shopping-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .list-stats {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .shopping-list-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+  }
+
+  @media (max-width: 968px) {
+    .shopping-list-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .ingredients-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .ingredients-section h3 {
+    color: var(--text);
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.5rem;
+  }
+
+  .recipes-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .recipes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .recipe-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .recipe-title {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .recipe-item .remove-recipe {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin-left: 1rem;
+  }
+
+  .recipe-item .remove-recipe:hover {
+    background-color: var(--border);
+  }
+
+  .aggregated-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .aggregated-item {
+    background: var(--surface);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .ingredient-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .ingredient-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .ingredient-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    flex: 1;
+    transition: opacity 0.2s;
+  }
+
+  .ingredient-label.checked {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  .ingredient-quantity {
+    font-weight: 600;
+    color: var(--text);
+    min-width: 80px;
+  }
+
+  .ingredient-name {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+
+  .no-ingredients {
+    color: var(--muted);
+    font-style: italic;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--accent-2);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    border: 0;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .back-button:hover {
+    background: #0770c9;
+    text-decoration: none;
+  }
+
+  html[data-theme="dark"] .back-button {
+    background: #5db2ff;
+  }
+
+  html[data-theme="dark"] .back-button:hover {
+    background: #7dc3ff;
+  }
+
+  .button {
+    background: var(--accent-2);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .button:hover {
+    background: #0770c9;
+    text-decoration: none;
+  }
+
+  .button.primary {
+    background: var(--accent-2);
+  }
+
+  .button.secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 2px solid var(--border);
+  }
+
+  .button.secondary:hover {
+    background: var(--border);
+  }
+
+  html[data-theme="dark"] .button {
+    background: #5db2ff;
+  }
+
+  html[data-theme="dark"] .button:hover {
+    background: #7dc3ff;
+  }
+</style>

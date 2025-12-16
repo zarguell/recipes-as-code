@@ -171,6 +171,11 @@ const jsonLd = {
 
     <div class="recipe-controls" data-recipe-controls>
       <button type="button" class="button secondary" id="recipePrintBtn">🖨️ Print</button>
+      <button type="button" class="button primary" id="addToShoppingListBtn"
+              data-recipe-slug={slug}
+              data-recipe-title={recipe.metadata.title || slug}>
+        🛒 Add to Shopping List
+      </button>
 
       <label class="scale">
         <span class="scale-label">Scale</span>
@@ -345,6 +350,100 @@ const jsonLd = {
           });
 
           applyScale(Number(scaleInput.value || "1") || 1);
+        }
+
+        // Shopping list functionality
+        const addToShoppingListBtn = document.getElementById("addToShoppingListBtn");
+        if (addToShoppingListBtn) {
+          // Extract ingredients data for shopping list
+          function getIngredientsForShoppingList() {
+            const ingredientElements = document.querySelectorAll('[data-role="qty"]');
+            const ingredients = [];
+
+            ingredientElements.forEach(el => {
+              const base = el.getAttribute("data-base");
+              const unit = el.getAttribute("data-unit") || "";
+              const nameEl = el.closest('.ingredient')?.querySelector('.ingredient-name');
+
+              if (nameEl && base !== null && base !== "") {
+                ingredients.push({
+                  name: nameEl.textContent.trim(),
+                  unit: unit,
+                  baseQuantity: Number(base)
+                });
+              }
+            });
+
+            return ingredients;
+          }
+
+          // Check if this recipe is already in shopping list
+          function isRecipeInShoppingList() {
+            if (!window.shoppingList) return false;
+            return window.shoppingList.isRecipeInList(addToShoppingListBtn.getAttribute('data-recipe-slug'));
+          }
+
+          // Update button state
+          function updateShoppingListButton() {
+            if (isRecipeInShoppingList()) {
+              addToShoppingListBtn.textContent = "🛒 Remove from Shopping List";
+              addToShoppingListBtn.classList.remove("primary");
+              addToShoppingListBtn.classList.add("secondary");
+            } else {
+              addToShoppingListBtn.textContent = "🛒 Add to Shopping List";
+              addToShoppingListBtn.classList.remove("secondary");
+              addToShoppingListBtn.classList.add("primary");
+            }
+          }
+
+          // Initialize button state
+          setTimeout(updateShoppingListButton, 100);
+
+          // Handle button click
+          addToShoppingListBtn.addEventListener("click", () => {
+            if (!window.shoppingList) {
+              alert("Shopping list not available. Please refresh the page and try again.");
+              return;
+            }
+
+            const recipeTitle = addToShoppingListBtn.getAttribute('data-recipe-title');
+            const recipeSlug = addToShoppingListBtn.getAttribute('data-recipe-slug');
+            const ingredients = getIngredientsForShoppingList();
+
+            if (ingredients.length === 0) {
+              alert("No ingredients found for this recipe.");
+              return;
+            }
+
+            const wasRemoved = window.shoppingList.addRecipe(recipeSlug, recipeTitle, ingredients);
+            updateShoppingListButton();
+
+            // Provide feedback
+            const message = wasRemoved
+              ? "Recipe removed from shopping list!"
+              : "Recipe added to shopping list!";
+
+            // Show brief notification
+            const notification = document.createElement("div");
+            notification.textContent = message;
+            notification.style.cssText = `
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background: var(--accent-2);
+              color: white;
+              padding: 1rem 1.5rem;
+              border-radius: 8px;
+              z-index: 1000;
+              animation: slideIn 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+              notification.style.animation = "slideOut 0.3s ease";
+              setTimeout(() => notification.remove(), 300);
+            }, 2000);
+          });
         }
       }
     </script>
@@ -633,6 +732,29 @@ const jsonLd = {
     .recipe-section {
       box-shadow: none;
       border: 1px solid #ccc;
+    }
+  }
+
+  /* Notification animations */
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
     }
   }
 </style>

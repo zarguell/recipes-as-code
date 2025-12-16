@@ -301,6 +301,61 @@ const { title, description, image } = Astro.props;
 					e.target.setAttribute('data-placeholder', 'true');
 				}
 			}, true);
+
+			// Initialize Shopping List globally
+			class ShoppingList {
+				constructor() {
+					this.storageKey = 'recipe-shopping-list';
+					this.list = this.loadList();
+				}
+
+				loadList() {
+					const stored = localStorage.getItem(this.storageKey);
+					return stored ? JSON.parse(stored) : { recipes: [] };
+				}
+
+				saveList() {
+					localStorage.setItem(this.storageKey, JSON.stringify(this.list));
+				}
+
+				addRecipe(recipeSlug, recipeTitle, ingredients) {
+					// Check if recipe already exists
+					const existingIndex = this.list.recipes.findIndex(r => r.slug === recipeSlug);
+
+					if (existingIndex >= 0) {
+						// Remove recipe if it already exists
+						this.list.recipes.splice(existingIndex, 1);
+					} else {
+						// Add new recipe
+						this.list.recipes.push({
+							slug: recipeSlug,
+							title: recipeTitle,
+							ingredients: ingredients,
+							addedAt: new Date().toISOString()
+						});
+					}
+
+					this.saveList();
+					return existingIndex >= 0; // returns true if recipe was removed
+				}
+
+				removeRecipe(recipeSlug) {
+					this.list.recipes = this.list.recipes.filter(r => r.slug !== recipeSlug);
+					this.saveList();
+				}
+
+				clearAll() {
+					this.list = { recipes: [] };
+					this.saveList();
+				}
+
+				isRecipeInList(recipeSlug) {
+					return this.list.recipes.some(r => r.slug === recipeSlug);
+				}
+			}
+
+			// Create global shopping list instance
+			window.shoppingList = new ShoppingList();
 		</script>
 
 		<slot name="scripts" />
