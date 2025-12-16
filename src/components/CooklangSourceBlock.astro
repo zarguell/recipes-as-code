@@ -6,21 +6,90 @@ interface Props {
 
 const { slug, text } = Astro.props;
 const baseUrl = import.meta.env.BASE_URL;
+
+// Function to highlight Cooklang syntax
+function highlightCooklang(code: string): string {
+  return code
+    // Highlight YAML frontmatter first
+    .replace(/^---\n([\s\S]*?)\n---/gm, '<span class="frontmatter">---\n$1\n---</span>')
+    // Highlight timers ~{time%unit}
+    .replace(/(~\{[^}]*\})/g, '<span class="timer">$1</span>')
+    // Highlight cookware:
+    // - #pot
+    // - #large jar{}
+    // - #potato masher{}
+    .replace(
+      /(#[A-Za-z][^\n@#~]*?\{[^}]*\}|#[A-Za-z][^\s@#~{},.]*)/g,
+      '<span class="cookware">$1</span>'
+    )
+    // Highlight ingredients:
+    // - @salt
+    // - @lemon juice{200%ml}
+    // - @ground pepper{}
+    .replace(
+      /(@[A-Za-z][^\n@#~]*?\{[^}]*\}|@[A-Za-z][^\s@#~{},.]*)/g,
+      '<span class="ingredient">$1</span>'
+    )
+    // Highlight comments
+    .replace(/(--.*)$/gm, '<span class="comment">$1</span>');
+}
+
+const highlightedText = highlightCooklang(text);
 ---
 
 <section class="recipe-section cooklang-source">
   <header>
     <h2>Cooklang source</h2>
-    <a
-      href={`${baseUrl}recipes/${slug}.cook`}
-      download={`${slug}.cook`}
-      class="download-btn"
-    >
-      Download
-    </a>
+    <div class="controls">
+      <button
+        type="button"
+        class="toggle-wrap"
+        id={`toggle-wrap-${slug}`}
+        aria-label="Toggle line wrapping"
+      >
+        <span class="wrap-icon">↪️</span>
+        <span class="wrap-text">Wrap</span>
+      </button>
+      <a
+        href={`${baseUrl}recipes/${slug}.cook`}
+        download={`${slug}.cook`}
+        class="download-btn"
+      >
+        Download
+      </a>
+    </div>
   </header>
-  <pre><code>{text}</code></pre>
+  <pre
+    id={`code-block-${slug}`}
+    class="code-block"
+  ><code set:html={highlightedText} /></pre>
 </section>
+
+<script>
+  // Initialize all cooklang source blocks
+  document.addEventListener('DOMContentLoaded', function() {
+    const cooklangBlocks = document.querySelectorAll('.cooklang-source');
+
+    cooklangBlocks.forEach(function(block) {
+      const toggleBtn = block.querySelector('.toggle-wrap');
+      const codeBlock = block.querySelector('.code-block');
+      let isWrapped = false;
+
+      if (toggleBtn && codeBlock) {
+        toggleBtn.addEventListener('click', function() {
+          isWrapped = !isWrapped;
+          codeBlock.style.whiteSpace = isWrapped ? 'pre-wrap' : 'pre';
+          toggleBtn.classList.toggle('active', isWrapped);
+
+          const wrapText = toggleBtn.querySelector('.wrap-text');
+          const wrapIcon = toggleBtn.querySelector('.wrap-icon');
+          if (wrapText) wrapText.textContent = isWrapped ? 'Unwrap' : 'Wrap';
+          if (wrapIcon) wrapIcon.textContent = isWrapped ? '↩️' : '↪️';
+        });
+      }
+    });
+  });
+</script>
 
 <style>
   .cooklang-source header {
@@ -38,6 +107,45 @@ const baseUrl = import.meta.env.BASE_URL;
     color: var(--text);
     border-bottom: 2px solid var(--accent);
     padding-bottom: 0.5rem;
+  }
+
+  .controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface);
+    color: var(--text);
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .toggle-wrap:hover {
+    border-color: var(--accent-2);
+    background: var(--accent-2);
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .toggle-wrap.active {
+    background: var(--accent-2);
+    color: white;
+    border-color: var(--accent-2);
+  }
+
+  .wrap-icon {
+    font-size: 0.9rem;
   }
 
   .download-btn {
@@ -59,6 +167,56 @@ const baseUrl = import.meta.env.BASE_URL;
     color: var(--accent);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Syntax highlighting styles */
+  :global(.cooklang-source .ingredient) {
+    color: var(--accent);
+    background: rgba(255, 107, 107, 0.1);
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  :global(.cooklang-source .cookware) {
+    color: var(--accent-2);
+    background: rgba(9, 132, 227, 0.1);
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  :global(.cooklang-source .timer) {
+    color: var(--accent);
+    background: rgba(255, 193, 7, 0.1);
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  :global(.cooklang-source .frontmatter) {
+    color: var(--muted);
+    font-style: italic;
+    opacity: 0.8;
+  }
+
+  :global(.cooklang-source .comment) {
+    color: var(--muted);
+    opacity: 0.7;
+    font-style: italic;
+  }
+
+  /* Dark mode adjustments for syntax highlighting */
+  :global(html[data-theme="dark"] .cooklang-source .ingredient) {
+    background: rgba(255, 107, 107, 0.2);
+  }
+
+  :global(html[data-theme="dark"] .cooklang-source .cookware) {
+    background: rgba(93, 178, 255, 0.2);
+  }
+
+  :global(html[data-theme="dark"] .cooklang-source .timer) {
+    background: rgba(255, 193, 7, 0.2);
   }
 
   .cooklang-source pre {
@@ -108,9 +266,16 @@ const baseUrl = import.meta.env.BASE_URL;
     .cooklang-source header {
       flex-direction: column;
       align-items: stretch;
+      gap: 0.75rem;
     }
 
+    .controls {
+      justify-content: center;
+    }
+
+    .toggle-wrap,
     .download-btn {
+      flex: 1;
       text-align: center;
       justify-content: center;
     }
@@ -118,6 +283,18 @@ const baseUrl = import.meta.env.BASE_URL;
     .cooklang-source pre {
       font-size: 0.85rem;
       padding: 0.75rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .controls {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .toggle-wrap,
+    .download-btn {
+      width: 100%;
     }
   }
 </style>
