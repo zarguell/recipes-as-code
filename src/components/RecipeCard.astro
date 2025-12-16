@@ -6,8 +6,6 @@ const description = recipe.parsed.metadata.description || "";
 const tags = recipe.parsed.metadata.tags || [];
 const imageUrl = recipe.parsed.metadata.image?.replace(/^["']|["']$/g, '') || null;
 
-// Default placeholder SVG
-const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
 
 // Get time info
 const prepTime = recipe.parsed.metadata["prep-time"];
@@ -25,12 +23,18 @@ const servings = recipe.parsed.metadata.servings;
   data-tags={tags.join(',').toLowerCase()}
 >
   <div class="recipe-image">
-    <img 
-      src={imageUrl || defaultImage}
-      alt={title}
-      onerror={`this.onerror=null;this.src="${defaultImage.replace(/'/g, '%27')}";`}
-      loading="lazy"
-    />
+    {imageUrl ? (
+      <img
+        src={imageUrl}
+        alt={title}
+        loading="lazy"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+      />
+    ) : null}
+    <div class="image-fallback" style={imageUrl ? "display: none;" : "display: flex;"}>
+      <span class="fallback-icon">🍳</span>
+      <span class="fallback-text">No Image</span>
+    </div>
   </div>
   <div class="recipe-info">
     <h3>{title}</h3>
@@ -61,7 +65,7 @@ const servings = recipe.parsed.metadata.servings;
 <style>
   .recipe-card {
     display: block;
-    background: white;
+    background: var(--surface);
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -79,7 +83,6 @@ const servings = recipe.parsed.metadata.servings;
     width: 100%;
     height: 200px;
     overflow: hidden;
-    background: #e0e0e0;
   }
 
   .recipe-image img {
@@ -94,13 +97,12 @@ const servings = recipe.parsed.metadata.servings;
 
   h3 {
     margin: 0 0 0.5rem 0;
-    color: #2d3436;
     font-size: 1.25rem;
   }
 
   .description {
     font-size: 0.9rem;
-    color: #636e72;
+    color: var(--muted);
     margin: 0.5rem 0 1rem 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -113,7 +115,7 @@ const servings = recipe.parsed.metadata.servings;
     flex-wrap: wrap;
     gap: 0.75rem;
     font-size: 0.85rem;
-    color: #636e72;
+    color: var(--muted);
   }
 
   .stat {
@@ -121,4 +123,30 @@ const servings = recipe.parsed.metadata.servings;
     align-items: center;
     gap: 0.25rem;
   }
+
+  /* Image fallback styling */
+  .image-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    gap: 0.5rem;
+  }
+
+  .fallback-icon {
+    font-size: 2rem;
+    opacity: 0.6;
+  }
+
+  .fallback-text {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-family: system-ui, sans-serif;
+  }
+
 </style>

@@ -1,0 +1,100 @@
+---
+const storageKey = "theme-preference"; // values: "system" | "light" | "dark"
+---
+
+<div class="theme-toggle" data-theme-toggle>
+  <button type="button" class="theme-btn" data-theme-btn data-theme="light" aria-pressed="false">
+    Light
+  </button>
+  <button type="button" class="theme-btn" data-theme-btn data-theme="dark" aria-pressed="false">
+    Dark
+  </button>
+  <button type="button" class="theme-btn" data-theme-btn data-theme="system" aria-pressed="false">
+    System
+  </button>
+</div>
+
+<script is:inline>
+  const storageKey = "theme-preference"; // keep in sync with frontmatter
+
+  function systemTheme() {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function getPreference() {
+    const saved = localStorage.getItem(storageKey);
+    if (saved === "light" || saved === "dark" || saved === "system") return saved;
+    return "system";
+  }
+
+  function applyTheme(pref) {
+    const actual = pref === "system" ? systemTheme() : pref;
+    document.documentElement.setAttribute("data-theme", actual);
+    document.documentElement.setAttribute("data-theme-pref", pref);
+  }
+
+  function syncButtons() {
+    const pref = document.documentElement.getAttribute("data-theme-pref") || "system";
+    document.querySelectorAll("[data-theme-btn]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", btn.getAttribute("data-theme") === pref ? "true" : "false");
+    });
+  }
+
+  // Init ASAP on each page load
+  const pref = getPreference();
+  applyTheme(pref);
+  syncButtons();
+
+  // React to OS theme changes when in "system"
+  const mql = window.matchMedia("(prefers-color-scheme: dark)");
+  mql.addEventListener?.("change", () => {
+    if (getPreference() === "system") {
+      applyTheme("system");
+      syncButtons();
+    }
+  });
+
+  // Button handling
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-theme-btn]");
+    if (!btn) return;
+
+    const next = btn.getAttribute("data-theme");
+    if (next !== "light" && next !== "dark" && next !== "system") return;
+
+    localStorage.setItem(storageKey, next);
+    applyTheme(next);
+    syncButtons();
+  });
+</script>
+
+<style>
+  .theme-toggle {
+    display: inline-flex;
+    gap: .35rem;
+    padding: .25rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 10px;
+  }
+
+  .theme-btn {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    padding: .35rem .6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+
+  .theme-btn[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--accent-2) 18%, transparent);
+    color: var(--text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theme-btn { transition: none; }
+  }
+</style>

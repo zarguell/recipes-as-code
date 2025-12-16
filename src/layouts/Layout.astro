@@ -1,0 +1,308 @@
+---
+export interface Props {
+	title: string;
+	description?: string;
+	image?: string;
+}
+
+const { title, description, image } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{title}</title>
+		{description && <meta name="description" content={description} />}
+		{image && <meta property="og:image" content={image} />}
+
+		<!-- Theme toggle component -->
+		<slot name="head" />
+
+		<style>
+			/* Global theme variables */
+			:root {
+				--bg: #faf9f7;
+				--surface: #ffffff;
+				--text: #2d3436;
+				--muted: #636e72;
+				--border: #dfe6e9;
+				--accent: #ff6b6b;
+				--accent-2: #0984e3;
+				--input-bg: #ffffff;
+				--input-text: #2d3436;
+				--input-border: #dfe6e9;
+				--input-focus: #0984e3;
+			}
+
+			html[data-theme="dark"] {
+				--bg: #1a1f2e;
+				--surface: #232937;
+				--text: #e1e8ed;
+				--muted: #8899a6;
+				--border: #38444d;
+				--accent: #ff6b6b;
+				--accent-2: #1da1f2;
+				--input-bg: #2f3336;
+				--input-text: #e1e8ed;
+				--input-border: #38444d;
+				--input-focus: #1da1f2;
+			}
+
+			/* Global styles */
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: system-ui, -apple-system, sans-serif;
+				margin: 0;
+				padding: 2rem;
+				background: var(--bg);
+				color: var(--text);
+				line-height: 1.6;
+				max-width: 1200px;
+				margin: 0 auto;
+			}
+
+			/* Theme toggle positioning */
+			.theme-toggle-container {
+				position: fixed;
+				top: 1rem;
+				right: 1rem;
+				z-index: 1000;
+			}
+
+			/* Add padding to body to avoid overlap with fixed theme toggle */
+			body {
+				padding-right: 5rem;
+			}
+
+			/* Header controls layout */
+			:global(.page-header) {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 2rem;
+				flex-wrap: wrap;
+				gap: 1rem;
+			}
+
+			:global(.header-controls) {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+			}
+
+			:global(.header-buttons) {
+				display: flex;
+				gap: 1rem;
+			}
+
+			@media (max-width: 768px) {
+				body {
+					padding-right: 0;
+				}
+
+				:global(.page-header) {
+					margin-right: 0;
+				}
+			}
+
+			@media print {
+				.theme-toggle-container {
+					display: none;
+				}
+
+				body {
+					padding-right: 0;
+				}
+			}
+
+			/* Common elements */
+			a {
+				color: var(--accent-2);
+				text-decoration: none;
+				transition: color 0.2s ease;
+			}
+
+			a:hover {
+				text-decoration: underline;
+				color: var(--accent-2);
+				filter: brightness(1.2);
+			}
+
+			/* Dark mode link adjustments */
+			html[data-theme="dark"] a {
+				color: #5db2ff;
+			}
+
+			html[data-theme="dark"] a:hover {
+				color: #7dc3ff;
+			}
+
+			/* Base typography */
+			h1, h2, h3 {
+				color: var(--text);
+				margin-top: 0;
+			}
+
+
+			/* Buttons */
+			:global(.button) {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--accent);
+				color: white;
+				padding: 0.75rem 1.5rem;
+				border-radius: 8px;
+				text-decoration: none;
+				font-weight: bold;
+				border: 0;
+				cursor: pointer;
+				transition: background 0.2s;
+			}
+
+			:global(.button:hover) {
+				background: #ee5a52;
+			}
+
+			:global(.button.secondary) {
+				background: var(--accent-2);
+			}
+
+			:global(.button.secondary:hover) {
+				background: #0770c9;
+			}
+
+			/* Grid layouts */
+			:global(.recipe-grid) {
+				display: grid;
+				gap: 2rem;
+			}
+
+			/* Default grid - responsive 3-column on desktop */
+			:global(.recipe-grid.view-grid) {
+				grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+			}
+
+			/* Wide screens - 4+ columns */
+			@media (min-width: 1400px) {
+				:global(.recipe-grid.view-grid) {
+					grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
+				}
+			}
+
+			/* Tablet - 2 columns */
+			@media (max-width: 1024px) {
+				:global(.recipe-grid.view-grid) {
+					grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+				}
+			}
+
+			/* Compact view - more columns, smaller cards */
+			:global(.recipe-grid.view-compact) {
+				grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+			}
+
+			/* List view - single column */
+			:global(.recipe-grid.view-list) {
+				grid-template-columns: 1fr;
+				gap: 1rem !important;
+			}
+
+			/* Mobile - 1 column */
+			@media (max-width: 640px) {
+				:global(.recipe-grid) {
+					gap: 1.5rem;
+				}
+				:global(.recipe-grid.view-grid) {
+					grid-template-columns: 1fr;
+				}
+				:global(.recipe-grid.view-compact) {
+					grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+				}
+			}
+
+			/* Responsive */
+			@media (max-width: 768px) {
+				body {
+					padding: 1rem;
+				}
+
+				.theme-toggle-container {
+					position: static;
+					margin-bottom: 1rem;
+					display: flex;
+					justify-content: flex-end;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="theme-toggle-container">
+			<slot name="theme-toggle" />
+		</div>
+
+		<main>
+			<slot />
+		</main>
+
+		<style>
+			/* List view card styling */
+			:global(.view-list .recipe-card) {
+				display: flex !important;
+				align-items: center;
+				text-decoration: none;
+				color: inherit;
+			}
+
+			:global(.view-list .recipe-card .recipe-image) {
+				width: 120px;
+				height: 120px;
+				flex-shrink: 0;
+			}
+
+			:global(.view-list .recipe-card .recipe-info) {
+				flex: 1;
+				padding: 1rem;
+			}
+
+			/* Compact view card styling */
+			:global(.view-compact .recipe-card .recipe-info) {
+				padding: 1rem;
+			}
+
+			:global(.view-compact .recipe-card .description) {
+				display: none;
+			}
+
+			/* Mobile list view adjustments */
+			@media (max-width: 768px) {
+				:global(.view-list .recipe-card) {
+					flex-direction: column;
+					text-align: center;
+				}
+
+				:global(.view-list .recipe-card .recipe-image) {
+					width: 100%;
+					height: 200px;
+				}
+			}
+		</style>
+
+		<script is:inline>
+			// Set correct placeholder for images that fail to load
+			document.addEventListener('error', (e) => {
+				if (e.target.tagName === 'IMG' && e.target.src.includes('No Image')) {
+					e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='var(--surface)' width='400' height='300'/%3E%3Ctext fill='var(--muted)' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
+					e.target.setAttribute('data-placeholder', 'true');
+				}
+			}, true);
+		</script>
+
+		<slot name="scripts" />
+	</body>
+</html>

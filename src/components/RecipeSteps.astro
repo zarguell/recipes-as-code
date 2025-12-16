@@ -277,17 +277,17 @@ function ingredientsUsedInStep(step) {
     width: 20px;
     height: 20px;
     margin: 0.35rem 0 0 0;
-    border: 2px solid #cbd5e1;
+    border: 2px solid var(--border);
     border-radius: 6px;
-    background: #fff;
+    background: var(--surface);
     display: grid;
     place-content: center;
     cursor: pointer;
   }
 
   .step-checkbox:checked {
-    background: #ff6b6b;
-    border-color: #ff6b6b;
+    background: var(--accent);
+    border-color: var(--accent);
   }
 
   .step-checkbox:checked::after {
@@ -309,7 +309,7 @@ function ingredientsUsedInStep(step) {
   .step-number {
     width: 2rem;
     height: 2rem;
-    background: #ff6b6b;
+    background: var(--accent);
     color: white;
     border-radius: 999px;
     display: flex;
@@ -324,7 +324,7 @@ function ingredientsUsedInStep(step) {
   }
 
   .step-instruction {
-    color: #2d3436;
+    color: var(--text);
     line-height: 1.6;
   }
 
@@ -336,8 +336,8 @@ function ingredientsUsedInStep(step) {
   }
 
   .used-chip {
-    border: 1px solid #e5e7eb;
-    background: #f3f4f6;
+    border: 1px solid var(--border);
+    background: var(--surface);
     border-radius: 999px;
     padding: 0.25rem 0.6rem;
     display: inline-flex;
@@ -349,13 +349,13 @@ function ingredientsUsedInStep(step) {
 
   .used-name {
     font-weight: 600;
-    color: #111827;
+    color: var(--text);
   }
 
   .used-qty {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     font-size: 0.9em;
-    color: #374151;
+    color: var(--muted);
     opacity: 0.9;
     white-space: nowrap;
   }
@@ -383,22 +383,22 @@ function ingredientsUsedInStep(step) {
   }
 
   .step-instruction :global(code) {
-    background: #f8f9fa;
+    background: var(--surface);
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border);
     font-size: 0.9em;
   }
 
   .step-instruction :global(code.cookware) {
-    background: #e3f2fd;
-    color: #1976d2;
-    border-color: #bbdefb;
+    background: var(--surface);
+    color: var(--accent-2);
+    border-color: var(--accent-2);
   }
 
   .step-instruction :global(code.timer) {
-    background: #fff3e0;
-    color: #e65100;
-    border-color: #ffcc80;
+    background: var(--surface);
+    color: var(--accent);
+    border-color: var(--accent);
   }
 </style>

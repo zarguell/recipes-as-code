@@ -4,7 +4,10 @@ import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
 import yaml from "js-yaml";
-import RecipeCard from "../../components/RecipeCard.astro"; 
+import RecipeCard from "../../components/RecipeCard.astro";
+import ThemeToggle from "../../components/ThemeToggle.astro";
+import ViewControls from "../../components/ViewControls.astro";
+import Layout from "../../layouts/Layout.astro";
 
 const recipesDir = resolve("recipes");
 const files = await readdir(recipesDir);
@@ -14,11 +17,11 @@ const recipes = cookFiles.map((file) => {
   const slug = file.replace(".cook", "");
   const filePath = resolve(recipesDir, file);
   const content = readFileSync(filePath, "utf-8");
-  
+
   // Extract YAML frontmatter
   let frontmatter = {};
   let recipeContent = content;
-  
+
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (frontmatterMatch) {
     try {
@@ -28,21 +31,20 @@ const recipes = cookFiles.map((file) => {
       console.error(`Error parsing YAML in ${file}:`, e);
     }
   }
-  
+
   let parsed;
   try {
     parsed = new Recipe(recipeContent);
     // Merge frontmatter with parsed metadata - frontmatter takes priority
     parsed.metadata = { ...parsed.metadata, ...frontmatter };
-    
+
   } catch (error) {
     console.error(`Error parsing ${file}:`, error);
     parsed = { metadata: frontmatter, ingredients: [], sections: [] };
   }
-  
+
   return { slug, parsed };
 });
-
 
 // Sort by title
 recipes.sort((a, b) => {
@@ -60,157 +62,115 @@ recipes.forEach((recipe) => {
 const sortedTags = Array.from(allTags).sort();
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Recipe Collection</title>
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: system-ui, -apple-system, sans-serif;
-        margin: 0;
-        padding: 2rem;
-        background: #faf9f7;
-      }
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-      h1 {
-        color: #2d3436;
-        margin-bottom: 1rem;
-      }
-      .subtitle {
-        color: #636e72;
-        margin-bottom: 2rem;
-      }
-      .controls {
-        margin-bottom: 2rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        align-items: center;
-      }
-      .search-box {
-        flex: 1;
-        min-width: 250px;
-      }
-      .search-box input {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        border: 2px solid #dfe6e9;
-        border-radius: 8px;
-        font-size: 1rem;
-        transition: border-color 0.2s;
-      }
-      .search-box input:focus {
-        outline: none;
-        border-color: #0984e3;
-      }
-      .tag-filter {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-      .tag-button {
-        background: #e3f2fd;
-        color: #1976d2;
-        border: 2px solid transparent;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: all 0.2s;
-      }
-      .tag-button:hover {
-        background: #bbdefb;
-      }
-      .tag-button.active {
-        background: #1976d2;
-        color: white;
-        border-color: #1565c0;
-      }
-      .recipe-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 2rem;
-        margin-top: 2rem;
-      }
-      .no-results {
-        text-align: center;
-        padding: 3rem;
-        color: #636e72;
-        font-size: 1.1rem;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
+<Layout title="Recipe Collection" description={`${recipes.length} recipes available`}>
+  <Fragment slot="theme-toggle">
+    <ThemeToggle />
+  </Fragment>
+
+  <div class="container">
+    <div class="page-header">
+      <a href={import.meta.env.BASE_URL} class="back-button">← Back to recipes</a>
       <h1>🍳 Recipe Collection</h1>
-      <p class="subtitle">{recipes.length} recipes available</p>
-      
-      <div class="controls">
-        <div class="search-box">
-          <input
-            type="text"
-            id="search"
-            placeholder="Search recipes by title, description, or tags..."
-            autocomplete="off"
-          />
-        </div>
-      </div>
+    </div>
+    <p class="subtitle">{recipes.length} recipes available</p>
 
-      {sortedTags.length > 0 && (
-        <div class="tag-filter" id="tagFilter">
-          {sortedTags.map((tag) => (
-            <button class="tag-button" data-tag={tag}>
-              #{tag}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div class="recipe-grid" id="recipeGrid">
-        {recipes.map((recipe) => (
-          <RecipeCard recipe={recipe} />
-        ))}
-      </div>
-
-      <div class="no-results" id="noResults" style="display: none;">
-        No recipes found matching your search.
+    <div class="controls">
+      <div class="search-box">
+        <input
+          type="text"
+          id="search"
+          placeholder="Search recipes by title, description, or tags..."
+          autocomplete="off"
+        />
       </div>
     </div>
 
+    {sortedTags.length > 0 && (
+      <div class="tag-filter" id="tagFilter">
+        {sortedTags.map((tag) => (
+          <button class="tag-button" data-tag={tag}>
+            #{tag}
+          </button>
+        ))}
+      </div>
+    )}
+
+    <ViewControls />
+
+    <div class="recipe-grid view-grid" id="recipeGrid">
+      {recipes.map((recipe) => (
+        <RecipeCard recipe={recipe} />
+      ))}
+    </div>
+
+    <div class="no-results" id="noResults" style="display: none;">
+      No recipes found matching your search.
+    </div>
+  </div>
+
+  <Fragment slot="scripts">
+    <script is:inline>
+      // Initialize view controls after DOM is ready
+      (function() {
+        const viewButtons = document.querySelectorAll('[data-view]');
+        const recipeGrid = document.getElementById('recipeGrid');
+
+        if (!viewButtons.length || !recipeGrid) return;
+
+        function setView(viewType) {
+          // Update button states
+          viewButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === viewType);
+          });
+
+          // Update grid class
+          recipeGrid.className = recipeGrid.className.replace(/view-\w+/g, '');
+          recipeGrid.classList.add(`view-${viewType}`);
+
+          // Save preference
+          localStorage.setItem('recipe-view-preference', viewType);
+        }
+
+        // Load saved preference
+        const savedView = localStorage.getItem('recipe-view-preference') || 'grid';
+        setView(savedView);
+
+        // Handle button clicks
+        viewButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            setView(button.dataset.view);
+          });
+        });
+      })();
+    </script>
+
     <script>
-      const searchInput = document.getElementById('search') as HTMLInputElement;
-      const recipeGrid = document.getElementById('recipeGrid') as HTMLElement;
-      const noResults = document.getElementById('noResults') as HTMLElement;
+      const searchInput = document.getElementById('search');
+      const recipeGrid = document.getElementById('recipeGrid');
+      const noResults = document.getElementById('noResults');
       const tagButtons = document.querySelectorAll('.tag-button');
-      
-      let activeTag: string | null = null;
+
+      let activeTag = null;
 
       function filterRecipes() {
         const searchTerm = searchInput.value.toLowerCase().trim();
-        const cards = recipeGrid.querySelectorAll('.recipe-card') as NodeListOf<HTMLElement>;
+        const cards = recipeGrid.querySelectorAll('.recipe-card');
         let visibleCount = 0;
 
         cards.forEach((card) => {
           const title = card.dataset.title || '';
           const description = card.dataset.description || '';
           const tags = card.dataset.tags || '';
-          
-          const matchesSearch = !searchTerm || 
-            title.includes(searchTerm) || 
+
+          const matchesSearch = !searchTerm ||
+            title.includes(searchTerm) ||
             description.includes(searchTerm) ||
             tags.includes(searchTerm);
-          
+
           const matchesTag = !activeTag || tags.split(',').includes(activeTag);
-          
+
           const shouldShow = matchesSearch && matchesTag;
-          
+
           card.style.display = shouldShow ? 'block' : 'none';
           if (shouldShow) visibleCount++;
         });
@@ -224,7 +184,7 @@ const sortedTags = Array.from(allTags).sort();
       tagButtons.forEach((button) => {
         button.addEventListener('click', () => {
           const tag = button.getAttribute('data-tag');
-          
+
           if (activeTag === tag) {
             activeTag = null;
             button.classList.remove('active');
@@ -233,10 +193,170 @@ const sortedTags = Array.from(allTags).sort();
             activeTag = tag;
             button.classList.add('active');
           }
-          
+
           filterRecipes();
         });
       });
     </script>
-  </body>
-</html>
+  </Fragment>
+</Layout>
+
+<style>
+  .container {
+    max-width: 100%;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--accent-2);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    border: 0;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .back-button:hover {
+    background: #0770c9;
+    text-decoration: none;
+  }
+
+  html[data-theme="dark"] .back-button {
+    background: #5db2ff;
+  }
+
+  html[data-theme="dark"] .back-button:hover {
+    background: #7dc3ff;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    margin-bottom: 2rem;
+  }
+
+  .controls {
+    margin-bottom: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    background: var(--input-bg);
+    color: var(--input-text);
+  }
+
+  .search-box input:focus {
+    outline: none;
+    border-color: var(--accent-2);
+  }
+
+  .tag-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  /* Scrollbar styling for tag filter */
+  .tag-filter::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .tag-filter::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+  }
+
+  .tag-filter::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 4px;
+  }
+
+  .tag-filter::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-2);
+  }
+
+  .tag-button {
+    background: var(--surface);
+    color: var(--accent-2);
+    border: 2px solid var(--accent-2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .tag-button:hover {
+    background: var(--accent-2);
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .tag-button.active {
+    background: var(--accent-2);
+    color: white;
+    border-color: var(--accent-2);
+  }
+
+  /* Dark mode tag button adjustments */
+  html[data-theme="dark"] .tag-button {
+    color: #5db2ff;
+    border-color: #5db2ff;
+  }
+
+  html[data-theme="dark"] .tag-button:hover {
+    background: #5db2ff;
+    color: var(--surface);
+  }
+
+  html[data-theme="dark"] .tag-button.active {
+    background: #5db2ff;
+    border-color: #5db2ff;
+  }
+
+  .recipe-grid {
+    margin-top: 2rem;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 3rem;
+    color: var(--muted);
+    font-size: 1.1rem;
+  }
+</style>
