@@ -17,6 +17,16 @@ const { title, description, image } = Astro.props;
 		{description && <meta name="description" content={description} />}
 		{image && <meta property="og:image" content={image} />}
 
+		<!-- PWA Manifest -->
+		<link rel="manifest" href="/recipes-as-code/manifest.webmanifest" />
+		<meta name="theme-color" content="#ff6b35" />
+
+		<!-- PWA Meta Tags -->
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-title" content="Recipes" />
+		<link rel="apple-touch-icon" href="/recipes-as-code/icons/192x192.png" />
+
 		<!-- Theme toggle component -->
 		<slot name="head" />
 
@@ -358,6 +368,7 @@ const { title, description, image } = Astro.props;
 			window.shoppingList = new ShoppingList();
 		</script>
 
+		
 		<slot name="scripts" />
 	</body>
 </html>
