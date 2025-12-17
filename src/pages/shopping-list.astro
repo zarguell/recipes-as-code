@@ -3,6 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import ThemeToggle from "../components/ThemeToggle.astro";
 
 const title = "Shopping List";
+const baseUrl = import.meta.env.BASE_URL;
 ---
 
 <Layout title={title}>
@@ -53,9 +54,117 @@ const title = "Shopping List";
   </div>
 
   <Fragment slot="scripts">
-    <script is:inline>
+    <script define:vars={{ baseUrl }} is:inline type="module">
+      // Make baseUrl available to the script
+      window.BASE_URL = baseUrl;
+    </script>
+    <script is:inline type="module">
+      class FoodClassifier {
+        constructor() {
+          this.classificationData = null;
+          this.loadData();
+        }
+
+        async loadData() {
+          try {
+            // Use the base URL injected from Astro template
+            const response = await fetch(`${window.BASE_URL}static/food-classification.json`);
+            this.classificationData = await response.json();
+          } catch (error) {
+            console.error('Failed to load food classification data:', error);
+          }
+        }
+
+        normalizeIngredient(ingredientName) {
+          if (!ingredientName) return '';
+
+          let normalized = ingredientName.toLowerCase().trim();
+
+          // Remove quantities at the start (e.g., "1 1/4 tsp", "250 grams", "2")
+          normalized = normalized.replace(/^[\d\s\/]*\s*([a-z]*)\s*/, '');
+
+          // Remove common units
+          const units = ['tsp', 'tbsp', 'cup', 'cups', 'oz', 'lb', 'lbs', 'gram', 'grams', 'g', 'kg', 'ml', 'l', 'pinch', 'dash', 'clove', 'cloves'];
+          units.forEach(unit => {
+            const regex = new RegExp(`\\b${unit}\\b`, 'g');
+            normalized = normalized.replace(regex, '');
+          });
+
+          // Remove parenthetical notes like (grated), (finely chopped), etc.
+          normalized = normalized.replace(/\([^)]*\)/g, '');
+
+          // Remove common descriptors
+          const descriptors = ['grated', 'chopped', 'diced', 'minced', 'finely', 'roughly', 'fresh', 'dried', 'ground', 'crushed', 'sliced', 'whole', 'large', 'small', 'medium', 'extra', 'virgin'];
+          descriptors.forEach(descriptor => {
+            const regex = new RegExp(`\\b${descriptor}\\b`, 'g');
+            normalized = normalized.replace(regex, '');
+          });
+
+          // Clean up extra whitespace
+          normalized = normalized.replace(/\s+/g, ' ').trim();
+
+          return normalized;
+        }
+
+        classifyIngredient(ingredientName) {
+          if (!this.classificationData) return 'Other';
+
+          const normalized = this.normalizeIngredient(ingredientName);
+
+          // Priority 1: Exact match to overrides
+          if (this.classificationData.overrides[normalized]) {
+            return this.classificationData.overrides[normalized];
+          }
+
+          // Priority 2: First rule whose keyword is a substring match
+          for (const rule of this.classificationData.rules) {
+            for (const keyword of rule.contains) {
+              if (normalized.includes(keyword)) {
+                return rule.section;
+              }
+            }
+          }
+
+          // Priority 3: Fallback to Other
+          return 'Other';
+        }
+
+        groupIngredientsByCategory(ingredients) {
+          if (!this.classificationData) {
+            return { 'Other': ingredients };
+          }
+
+          const grouped = {};
+
+          // Initialize all sections with empty arrays
+          this.classificationData.sections.forEach(section => {
+            grouped[section] = [];
+          });
+
+          // Group ingredients by category
+          ingredients.forEach(ingredient => {
+            const category = this.classifyIngredient(ingredient.name);
+            if (grouped[category]) {
+              grouped[category].push(ingredient);
+            } else {
+              grouped['Other'].push(ingredient);
+            }
+          });
+
+          // Remove empty sections
+          Object.keys(grouped).forEach(section => {
+            if (grouped[section].length === 0) {
+              delete grouped[section];
+            }
+          });
+
+          return grouped;
+        }
+      }
+
       class ShoppingListUI {
         constructor() {
+          this.classifier = new FoodClassifier();
           this.init();
         }
 
@@ -167,41 +276,77 @@ const title = "Shopping List";
             recipesList.appendChild(recipeItem);
           });
 
-          // Render aggregated ingredients with checkboxes
+          // Render aggregated ingredients with checkboxes, grouped by category
           const aggregated = this.aggregateIngredients();
           aggregatedIngredients.innerHTML = '';
 
           if (aggregated.length === 0) {
             aggregatedIngredients.innerHTML = '<p class="no-ingredients">No ingredients to show</p>';
           } else {
-            // Sort by name
+            // Sort by name first
             aggregated.sort((a, b) => a.name.localeCompare(b.name));
 
-            aggregated.forEach((ingredient, index) => {
-              const ingredientDiv = document.createElement('div');
-              ingredientDiv.className = 'aggregated-item';
+            // Group by category
+            const grouped = this.classifier.groupIngredientsByCategory(aggregated);
+            let ingredientIndex = 0;
 
-              const quantityText = ingredient.baseQuantity > 0
-                ? `${this.formatQuantity(ingredient.baseQuantity)}${ingredient.unit ? ' ' + ingredient.unit : ''} `
-                : '';
+            // Render each category
+            Object.keys(grouped).forEach(category => {
+              const categorySection = document.createElement('div');
+              categorySection.className = 'category-section';
 
-              ingredientDiv.innerHTML = `
-                <div class="ingredient-main">
-                  <input type="checkbox" id="ingredient-${index}" class="ingredient-checkbox">
-                  <label for="ingredient-${index}" class="ingredient-label">
-                    <span class="ingredient-quantity">${quantityText}</span>
-                    <span class="ingredient-name">${ingredient.name}</span>
-                  </label>
-                </div>
-              `;
-              aggregatedIngredients.appendChild(ingredientDiv);
+              const categoryHeader = document.createElement('h4');
+              categoryHeader.className = 'category-header';
+              categoryHeader.textContent = category;
+              categorySection.appendChild(categoryHeader);
+
+              const categoryList = document.createElement('div');
+              categoryList.className = 'category-ingredients';
+
+              grouped[category].forEach(ingredient => {
+                const ingredientDiv = document.createElement('div');
+                ingredientDiv.className = 'aggregated-item';
+
+                const quantityText = ingredient.baseQuantity > 0
+                  ? `${this.formatQuantity(ingredient.baseQuantity)}${ingredient.unit ? ' ' + ingredient.unit : ''} `
+                  : '';
+
+                ingredientDiv.innerHTML = `
+                  <div class="ingredient-main">
+                    <input type="checkbox" id="ingredient-${ingredientIndex}" class="ingredient-checkbox">
+                    <label for="ingredient-${ingredientIndex}" class="ingredient-label">
+                      <span class="ingredient-quantity">${quantityText}</span>
+                      <span class="ingredient-name">${ingredient.name}</span>
+                    </label>
+                  </div>
+                `;
+                categoryList.appendChild(ingredientDiv);
+                ingredientIndex++;
+              });
+
+              categorySection.appendChild(categoryList);
+              aggregatedIngredients.appendChild(categorySection);
             });
           }
         }
 
         init() {
-          // Wait a bit for global shopping list to be ready
-          setTimeout(() => {
+          // Wait a bit for global shopping list to be ready and classification data to load
+          setTimeout(async () => {
+            // Wait for classification data to load
+            if (this.classifier.classificationData === null) {
+              await new Promise(resolve => {
+                const checkData = () => {
+                  if (this.classifier.classificationData !== null) {
+                    resolve();
+                  } else {
+                    setTimeout(checkData, 50);
+                  }
+                };
+                checkData();
+              });
+            }
+
             this.render();
 
             // Attach event listeners
@@ -381,7 +526,29 @@ const title = "Shopping List";
   .aggregated-list {
     display: flex;
     flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .category-section {
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .category-header {
+    color: var(--text);
+    margin: 0;
+    padding: 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .category-ingredients {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-left: 0.5rem;
   }
 
   .aggregated-item {

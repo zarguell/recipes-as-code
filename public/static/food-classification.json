@@ -1,0 +1,356 @@
+{
+  "sections": [
+    "Produce",
+    "Dairy & Eggs",
+    "Meat & Seafood",
+    "Bakery",
+    "Pantry",
+    "Spices & Seasonings",
+    "Oils & Condiments",
+    "Pasta & Grains",
+    "Frozen",
+    "Nuts & Seeds",
+    "Beverages",
+    "Alcohol",
+    "Plant-Based & Vegan",
+    "Baking Supplies",
+    "Other"
+  ],
+  "overrides": {
+    "all-purpose flour": "Baking Supplies",
+    "anchovies": "Meat & Seafood",
+    "aperol": "Alcohol",
+    "arugula": "Produce",
+    "bagel": "Bakery",
+    "baking powder": "Baking Supplies",
+    "baking soda": "Baking Supplies",
+    "basil": "Produce",
+    "black pepper": "Spices & Seasonings",
+    "bread": "Bakery",
+    "breadcrumbs": "Baking Supplies",
+    "brie": "Dairy & Eggs",
+    "broccoli": "Produce",
+    "brown butter and sage fat washed gin": "Alcohol",
+    "brown sugar": "Baking Supplies",
+    "butter": "Dairy & Eggs",
+    "butterbeans": "Pantry",
+    "cannellini beans": "Pantry",
+    "butternut squash": "Produce",
+    "california olive ranch extra virgin olive oil": "Oils & Condiments",
+    "cane sugar": "Baking Supplies",
+    "cashews": "Nuts & Seeds",
+    "chai concentrate": "Beverages",
+    "chia seeds": "Nuts & Seeds",
+    "chilli flakes": "Spices & Seasonings",
+    "red pepper flakes": "Spices & Seasonings",
+    "cinnamon": "Spices & Seasonings",
+    "coriander": "Spices & Seasonings",
+    "cream cheese": "Dairy & Eggs",
+    "cumin": "Spices & Seasonings",
+    "dijon mustard": "Oils & Condiments",
+    "egg": "Dairy & Eggs",
+    "egg white": "Dairy & Eggs",
+    "egg yolks": "Dairy & Eggs",
+    "eggs": "Dairy & Eggs",
+    "espresso": "Beverages",
+    "fennel": "Produce",
+    "feta": "Dairy & Eggs",
+    "flour": "Baking Supplies",
+    "fresh orange juice": "Beverages",
+    "garlic": "Produce",
+    "garlic powder": "Spices & Seasonings",
+    "gin": "Alcohol",
+    "gnocchi": "Pasta & Grains",
+    "granulated sugar": "Baking Supplies",
+    "heavy cream": "Dairy & Eggs",
+    "honey": "Pantry",
+    "hot honey": "Pantry",
+    "instant coffee": "Beverages",
+    "italian seasoning": "Spices & Seasonings",
+    "leeks": "Produce",
+    "lemon juice": "Oils & Condiments",
+    "lemon zest": "Produce",
+    "lemons": "Produce",
+    "lime juice": "Oils & Condiments",
+    "mascarpone": "Dairy & Eggs",
+    "mayo": "Oils & Condiments",
+    "milk": "Dairy & Eggs",
+    "oat milk": "Dairy & Eggs",
+    "miso": "Pantry",
+    "mozzarella": "Dairy & Eggs",
+    "mustard": "Oils & Condiments",
+    "nooch": "Pantry",
+    "nutmeg": "Spices & Seasonings",
+    "oil": "Oils & Condiments",
+    "olive oil": "Oils & Condiments",
+    "onion": "Produce",
+    "red onion": "Produce",
+    "onion powder": "Spices & Seasonings",
+    "orange zest": "Produce",
+    "orzo": "Pasta & Grains",
+    "paprika": "Spices & Seasonings",
+    "smoked paprika": "Spices & Seasonings",
+    "parmesan": "Dairy & Eggs",
+    "parmigiano reggiano": "Dairy & Eggs",
+    "pepper": "Spices & Seasonings",
+    "pesto": "Oils & Condiments",
+    "powdered sugar": "Baking Supplies",
+    "puff pastry": "Frozen",
+    "rolled oats": "Pasta & Grains",
+    "sage": "Produce",
+    "sage leaves": "Produce",
+    "sage syrup": "Pantry",
+    "salt": "Spices & Seasonings",
+    "salted butter": "Dairy & Eggs",
+    "sourdough discard": "Baking Supplies",
+    "soy sauce": "Oils & Condiments",
+    "textured soy protein": "Plant-Based & Vegan",
+    "tofu": "Plant-Based & Vegan",
+    "vanilla": "Baking Supplies",
+    "vanilla bean paste": "Baking Supplies",
+    "vanilla extract": "Baking Supplies",
+    "vanilla greek yogurt": "Dairy & Eggs",
+    "vegan butter": "Plant-Based & Vegan",
+    "vegan cream": "Plant-Based & Vegan",
+    "vegan worcestershire sauce": "Oils & Condiments",
+    "vegetable stock": "Pantry",
+    "water": "Other",
+    "white cheddar": "Dairy & Eggs",
+    "white wine vinegar": "Oils & Condiments",
+    "worcestershire sauce": "Oils & Condiments"
+  },
+  "rules": [
+    {
+      "contains": [
+        "arugula",
+        "basil",
+        "broccoli",
+        "butternut squash",
+        "fennel",
+        "garlic",
+        "leek",
+        "leeks",
+        "lemon",
+        "lime",
+        "onion",
+        "orange zest",
+        "sage",
+        "zest",
+        "herb",
+        "herbs"
+      ],
+      "section": "Produce"
+    },
+    {
+      "contains": [
+        "milk",
+        "cream",
+        "cheese",
+        "yogurt",
+        "butter",
+        "egg",
+        "mascarpone",
+        "mozzarella",
+        "brie",
+        "cheddar",
+        "parmesan",
+        "parmigiano"
+      ],
+      "section": "Dairy & Eggs"
+    },
+    {
+      "contains": [
+        "anchovy",
+        "anchovies",
+        "fish",
+        "salmon",
+        "tuna",
+        "cod",
+        "shrimp",
+        "prawn",
+        "crab",
+        "oyster",
+        "mussel"
+      ],
+      "section": "Meat & Seafood"
+    },
+    {
+      "contains": [
+        "bread",
+        "bagel",
+        "croissant",
+        "baguette",
+        "roll",
+        "bun",
+        "sourdough",
+        "ciabatta",
+        "focaccia"
+      ],
+      "section": "Bakery"
+    },
+    {
+      "contains": [
+        "bean",
+        "beans",
+        "stock",
+        "broth",
+        "honey",
+        "syrup",
+        "jam",
+        "preserve",
+        "miso",
+        "nooch",
+        "nutritional yeast"
+      ],
+      "section": "Pantry"
+    },
+    {
+      "contains": [
+        "salt",
+        "pepper",
+        "paprika",
+        "cumin",
+        "coriander",
+        "cinnamon",
+        "nutmeg",
+        "chilli",
+        "chili",
+        "seasoning",
+        "garlic powder",
+        "onion powder",
+        "cayenne",
+        "turmeric"
+      ],
+      "section": "Spices & Seasonings"
+    },
+    {
+      "contains": [
+        "oil",
+        "olive oil",
+        "vinegar",
+        "mayo",
+        "mayonnaise",
+        "mustard",
+        "dijon",
+        "worcestershire",
+        "soy sauce",
+        "tamari",
+        "lemon juice",
+        "lime juice"
+      ],
+      "section": "Oils & Condiments"
+    },
+    {
+      "contains": [
+        "pasta",
+        "orzo",
+        "gnocchi",
+        "oats",
+        "rolled oats",
+        "rice",
+        "quinoa",
+        "couscous",
+        "barley"
+      ],
+      "section": "Pasta & Grains"
+    },
+    {
+      "contains": [
+        "frozen",
+        "puff pastry",
+        "edamame"
+      ],
+      "section": "Frozen"
+    },
+    {
+      "contains": [
+        "walnut",
+        "walnuts",
+        "cashew",
+        "cashews",
+        "almond",
+        "seed",
+        "seeds",
+        "chia",
+        "sesame",
+        "sunflower",
+        "pumpkin",
+        "flax"
+      ],
+      "section": "Nuts & Seeds"
+    },
+    {
+      "contains": [
+        "coffee",
+        "chai",
+        "tea",
+        "espresso",
+        "juice"
+      ],
+      "section": "Beverages"
+    },
+    {
+      "contains": [
+        "gin",
+        "vodka",
+        "rum",
+        "whiskey",
+        "wine",
+        "beer",
+        "aperol",
+        "vermouth",
+        "liqueur",
+        "brandy",
+        "tequila",
+        "mezcal",
+        "champagne",
+        "prosecco"
+      ],
+      "section": "Alcohol"
+    },
+    {
+      "contains": [
+        "vegan",
+        "plant-based",
+        "plant based",
+        "tofu",
+        "tempeh",
+        "seitan",
+        "tvp",
+        "textured soy protein"
+      ],
+      "section": "Plant-Based & Vegan"
+    },
+    {
+      "contains": [
+        "flour",
+        "sugar",
+        "baking powder",
+        "baking soda",
+        "yeast",
+        "breadcrumb",
+        "breadcrumbs",
+        "vanilla",
+        "cocoa",
+        "cacao",
+        "chocolate"
+      ],
+      "section": "Baking Supplies"
+    }
+  ],
+  "normalization": {
+    "notes": [
+      "Lowercase",
+      "Strip leading quantities and units (e.g., '1 tbsp', '250 grams')",
+      "Remove parenthetical notes like '(grated)'",
+      "Trim whitespace"
+    ]
+  },
+  "matching": {
+    "priority": [
+      "Exact match to overrides",
+      "First rule whose keyword is a substring match",
+      "Fallback to Other"
+    ]
+  }
+}
