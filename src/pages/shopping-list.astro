@@ -165,7 +165,199 @@ const baseUrl = import.meta.env.BASE_URL;
       class ShoppingListUI {
         constructor() {
           this.classifier = new FoodClassifier();
+
+          // Unit conversion constants
+          this.conversions = {
+            // Volume conversions to ml
+            tsp: 5,
+            teaspoon: 5,
+            tbsp: 15,
+            tablespoon: 15,
+            cup: 240,
+            cups: 240,
+            ml: 1,
+            l: 1000,
+            liter: 1000,
+            fl_oz: 29.5735,
+            'fl oz': 29.5735,
+            fluid_ounce: 29.5735,
+
+            // Weight conversions to g
+            g: 1,
+            gram: 1,
+            grams: 1,
+            kg: 1000,
+            kilogram: 1000,
+            kilograms: 1000,
+            oz: 28.3495,
+            ounce: 28.3495,
+            ounces: 28.3495,
+            lb: 453.592,
+            lbs: 453.592,
+            pound: 453.592,
+            pounds: 453.592
+          };
+
+          // Unit normalization map
+          this.unitAliases = {
+            // Volume
+            'tsp.': 'tsp',
+            't': 'tsp',
+            'tbsp.': 'tbsp',
+            't': 'tbsp',
+            'tbs': 'tbsp',
+            'tablespoon': 'tbsp',
+            'teaspoon': 'tsp',
+            'c': 'cup',
+            'fl oz': 'fl_oz',
+            'fl. oz.': 'fl_oz',
+            'fluid ounce': 'fl_oz',
+            'liter': 'l',
+            'litre': 'l',
+
+            // Weight
+            'gram': 'g',
+            'grams': 'g',
+            'kilogram': 'kg',
+            'kilograms': 'kg',
+            'ounce': 'oz',
+            'ounces': 'oz',
+            'pound': 'lb',
+            'pounds': 'lb',
+
+            // Count/each
+            'clove': 'clove',
+            'cloves': 'clove',
+            'can': 'can',
+            'cans': 'can',
+            'package': 'package',
+            'packages': 'package'
+          };
+
           this.init();
+        }
+
+        // Helper function to normalize ingredient name
+        normalizeName(name) {
+          return this.classifier.normalizeIngredient(name);
+        }
+
+        // Helper function to parse quantity and unit from ingredient
+        parseQuantityAndUnit(ingredient) {
+          // Prefer the already parsed values
+          if (ingredient.baseQuantity !== null && ingredient.baseQuantity !== undefined) {
+            return {
+              qty: ingredient.baseQuantity,
+              unit: ingredient.unit || null
+            };
+          }
+
+          // Fallback: try to parse from ingredient name if it contains leading quantities
+          const nameWithQty = ingredient.name;
+          const qtyMatch = nameWithQty.match(/^([\d\s\/]+)\s*([a-z]*)\s*/i);
+
+          if (qtyMatch) {
+            const qtyStr = qtyMatch[1].trim();
+            const unit = qtyMatch[2] || null;
+
+            // Parse the quantity (handles fractions like "7/12", "1 1/2")
+            const parseFraction = (str) => {
+              if (str.includes('/')) {
+                const parts = str.split(' ');
+                if (parts.length === 2) {
+                  // Mixed number like "1 1/2"
+                  const whole = parseInt(parts[0], 10);
+                  const fraction = parts[1];
+                  const fracParts = fraction.split('/');
+                  if (fracParts.length === 2) {
+                    return whole + (parseInt(fracParts[0], 10) / parseInt(fracParts[1], 10));
+                  }
+                } else if (parts.length === 1) {
+                  // Simple fraction like "7/12"
+                  const fracParts = str.split('/');
+                  if (fracParts.length === 2) {
+                    return parseInt(fracParts[0], 10) / parseInt(fracParts[1], 10);
+                  }
+                }
+              }
+              return parseFloat(str);
+            };
+
+            const qty = parseFraction(qtyStr);
+            return { qty: isNaN(qty) ? null : qty, unit };
+          }
+
+          return { qty: null, unit: null };
+        }
+
+        // Helper function to convert to canonical units
+        toCanonical(qty, unit) {
+          if (qty === null || qty === undefined || unit === null || unit === undefined) {
+            return null;
+          }
+
+          const normalizedUnit = unit.toLowerCase().trim();
+          const canonicalUnit = this.unitAliases[normalizedUnit] || normalizedUnit;
+
+          // Check if it's a volume unit
+          if (this.conversions[canonicalUnit]) {
+            // Volume conversions (canonical: ml)
+            if (['tsp', 'teaspoon', 'tbsp', 'tablespoon', 'cup', 'cups', 'ml', 'l', 'liter', 'fl_oz', 'fluid_ounce'].includes(canonicalUnit)) {
+              const ml = qty * this.conversions[canonicalUnit];
+              return { dimension: 'volume', canonicalQty: ml, canonicalUnit: 'ml' };
+            }
+
+            // Weight conversions (canonical: g)
+            if (['g', 'gram', 'grams', 'kg', 'kilogram', 'kilograms', 'oz', 'ounce', 'ounces', 'lb', 'pound', 'pounds'].includes(canonicalUnit)) {
+              const g = qty * this.conversions[canonicalUnit];
+              return { dimension: 'weight', canonicalQty: g, canonicalUnit: 'g' };
+            }
+          }
+
+          // Count/each units (no conversion)
+          if (['clove', 'can', 'package'].includes(canonicalUnit)) {
+            return { dimension: 'each', canonicalQty: qty, canonicalUnit: 'each' };
+          }
+
+          // Unknown unit
+          return null;
+        }
+
+        // Helper function to convert canonical units back to display units
+        convertToDisplayUnit(canonicalQty, dimension) {
+          if (dimension === 'volume') {
+            // Convert ml to appropriate display unit
+            if (canonicalQty >= 240) {
+              // Show in cups
+              const cups = canonicalQty / 240;
+              return { qty: cups, unit: 'cup' };
+            } else if (canonicalQty >= 15) {
+              // Show in tbsp
+              const tbsp = canonicalQty / 15;
+              return { qty: tbsp, unit: 'tbsp' };
+            } else if (canonicalQty >= 5) {
+              // Show in tsp
+              const tsp = canonicalQty / 5;
+              return { qty: tsp, unit: 'tsp' };
+            } else {
+              // Show in ml
+              return { qty: canonicalQty, unit: 'ml' };
+            }
+          } else if (dimension === 'weight') {
+            // Convert g to appropriate display unit
+            if (canonicalQty >= 1000) {
+              // Show in kg
+              const kg = canonicalQty / 1000;
+              return { qty: kg, unit: 'kg' };
+            } else {
+              // Show in g
+              return { qty: canonicalQty, unit: 'g' };
+            }
+          } else if (dimension === 'each') {
+            return { qty: canonicalQty, unit: '' };
+          }
+
+          return { qty: canonicalQty, unit: '' };
         }
 
         aggregateIngredients() {
@@ -175,24 +367,67 @@ const baseUrl = import.meta.env.BASE_URL;
             recipe.ingredients.forEach(ingredient => {
               if (!ingredient.name) return;
 
-              const key = `${ingredient.name.toLowerCase().trim()}__${ingredient.unit || ''}`;
+              const normalizedName = this.normalizeName(ingredient.name);
+              const { qty, unit } = this.parseQuantityAndUnit(ingredient);
+
+              let key, dimension, canonicalQty;
+
+              if (qty !== null && unit !== null) {
+                const canonical = this.toCanonical(qty, unit);
+                if (canonical) {
+                  // Convertible unit
+                  dimension = canonical.dimension;
+                  canonicalQty = canonical.canonicalQty;
+                  key = `${normalizedName}__${dimension}`;
+                } else {
+                  // Unknown unit - treat as none
+                  dimension = 'none';
+                  canonicalQty = null;
+                  key = `${normalizedName}__none`;
+                }
+              } else {
+                // No quantity or unit - treat as none
+                dimension = 'none';
+                canonicalQty = null;
+                key = `${normalizedName}__none`;
+              }
 
               if (!aggregated[key]) {
                 aggregated[key] = {
                   name: ingredient.name,
-                  unit: ingredient.unit || '',
-                  baseQuantity: 0
+                  normalizedName: normalizedName,
+                  dimension: dimension,
+                  canonicalQty: 0,
+                  originalUnit: unit || '',
+                  hasQuantity: qty !== null && unit !== null
                 };
               }
 
-              // Add base quantity if available
-              if (ingredient.baseQuantity !== null && ingredient.baseQuantity !== undefined) {
-                aggregated[key].baseQuantity += ingredient.baseQuantity;
+              // Only sum if we have a convertible quantity
+              if (canonicalQty !== null) {
+                aggregated[key].canonicalQty += canonicalQty;
+                aggregated[key].hasQuantity = true;
               }
             });
           });
 
-          return Object.values(aggregated);
+          // Convert canonical quantities back to display units
+          return Object.values(aggregated).map(item => {
+            if (item.hasQuantity && item.dimension !== 'none') {
+              const display = this.convertToDisplayUnit(item.canonicalQty, item.dimension);
+              return {
+                name: item.name,
+                unit: display.unit,
+                baseQuantity: display.qty
+              };
+            } else {
+              return {
+                name: item.name,
+                unit: item.originalUnit || '',
+                baseQuantity: item.hasQuantity ? item.canonicalQty : null
+              };
+            }
+          });
         }
 
         formatQuantity(quantity) {
