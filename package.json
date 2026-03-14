@@ -20,7 +20,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "astro": "^4.0.0"
+    "astro": "^6.0.0"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.0",
