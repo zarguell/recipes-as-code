@@ -25,7 +25,13 @@
   "dependencies": {
     "@astrojs/rss": "^4.0.0",
     "@tmlmt/cooklang-parser": "^2.0.0",
+    "@vite-pwa/astro": "^1.2.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^5.0.0"
+  },
+  "overrides": {
+    "@vite-pwa/astro": {
+      "astro": "^1.6.0 || ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
+    }
   }
 }
