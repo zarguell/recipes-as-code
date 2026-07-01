@@ -3,7 +3,7 @@ import { readdir } from "fs/promises";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { Recipe } from "@tmlmt/cooklang-parser";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import RecipeCard from "../../components/RecipeCard.astro";
 import ThemeToggle from "../../components/ThemeToggle.astro";
 import ViewControls from "../../components/ViewControls.astro";
