@@ -1,31 +1,35 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import ThemeToggle from "../components/ThemeToggle.astro";
+import Icon from "../components/Icon.astro";
 
 const title = "Shopping List";
 const baseUrl = import.meta.env.BASE_URL;
 ---
 
 <Layout title={title}>
-  <Fragment slot="theme-toggle">
-    <ThemeToggle />
-  </Fragment>
 
   <header class="page-header">
     <div class="header-top">
-      <a href={import.meta.env.BASE_URL} class="back-button">← Back to recipes</a>
-      <h1>🛒 Shopping List</h1>
+      <h1>Shopping List</h1>
     </div>
     <div class="header-actions">
-      <button type="button" class="button secondary" id="clearListBtn">
-        🗑️ Clear All
-      </button>
+      <button type="button" class="button icon-only" id="copyListBtn" aria-label="Copy list as text" title="Copy list as text"><Icon name="copy" size={18} /></button>
+      <button type="button" class="button icon-only" id="exportCsvBtn" aria-label="Download CSV" title="Download CSV"><Icon name="download" size={18} /></button>
+      <button type="button" class="button icon-only" id="exportJsonBtn" aria-label="Download JSON backup" title="Download JSON backup"><Icon name="download" size={18} /></button>
+      <button type="button" class="button icon-only" id="importJsonBtn" aria-label="Import JSON backup" title="Import JSON backup"><Icon name="upload" size={18} /></button>
+      <input type="file" id="importFileInput" accept="application/json,.json" hidden />
+      <button type="button" class="button icon-only" id="printListBtn" aria-label="Print list" title="Print list"><Icon name="printer" size={18} /></button>
+      <button type="button" class="button icon-only" id="clearListBtn" aria-label="Clear list" title="Clear list"><Icon name="close" size={18} /></button>
+    </div>
+    <div id="toast" class="toast" role="status" hidden>
+      <span id="toastMessage"></span>
+      <button type="button" id="toastAction" class="toast-action" hidden></button>
     </div>
   </header>
 
   <div class="shopping-list-container">
     <div id="empty-state" class="empty-state">
-      <div class="empty-icon">🛒</div>
+      <div class="empty-icon" aria-hidden="true"><Icon name="cart" size={56} /></div>
       <h2>Your shopping list is empty</h2>
       <p>Add recipes from the recipe pages to build your shopping list!</p>
       <a href={import.meta.env.BASE_URL} class="button primary">
@@ -54,578 +58,200 @@ const baseUrl = import.meta.env.BASE_URL;
   </div>
 
   <Fragment slot="scripts">
-    <script define:vars={{ baseUrl }} is:inline type="module">
-      // Make baseUrl available to the script
-      window.BASE_URL = baseUrl;
-    </script>
-    <script is:inline type="module">
-      class FoodClassifier {
-        constructor() {
-          this.classificationData = null;
-          this.loadData();
+    <script>
+      // Processed (bundled) module — imports resolve at build time.
+      // Fixes the previous is:inline version whose `../../utils/*.js`
+      // imports 404'd in production and never ran at all.
+      import { FoodClassifier } from '../utils/food-classifier';
+      import { aggregateIngredients } from '../utils/shopping-list-aggregator';
+      import {
+        updateEmptyState,
+        updateStats,
+        buildRecipeList,
+        buildIngredientList,
+        buildListText,
+        buildListCsv,
+      } from '../utils/shopping-list-renderer';
+      import { shoppingList } from '../scripts/shopping-list-store';
+
+      const classifier = new FoodClassifier();
+
+      function aggregate() {
+        return aggregateIngredients(shoppingList.list.recipes);
+      }
+
+      function render() {
+        const recipes = shoppingList.list.recipes;
+
+        if (recipes.length === 0) {
+          updateEmptyState(true);
+          return;
         }
 
-        async loadData() {
+        updateEmptyState(false);
+        updateStats(recipes);
+        buildRecipeList(recipes);
+        buildIngredientList(aggregate(), classifier, (key) => shoppingList.isIngredientChecked(key));
+      }
+
+      // --- Toast with optional undo ---
+      const toast = document.getElementById('toast') as HTMLElement | null;
+      const toastMessage = document.getElementById('toastMessage');
+      const toastAction = document.getElementById('toastAction');
+      let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+      function showToast(message: string, actionLabel?: string, onAction?: () => void) {
+        if (!toast || !toastMessage || !toastAction) return;
+        toastMessage.textContent = message;
+        if (actionLabel && onAction) {
+          toastAction.textContent = actionLabel;
+          toastAction.hidden = false;
+          toastAction.onclick = () => {
+            onAction();
+            hideToast();
+          };
+        } else {
+          toastAction.hidden = true;
+          toastAction.onclick = null;
+        }
+        toast.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 6000);
+      }
+
+      function hideToast() {
+        if (toast) toast.hidden = true;
+        clearTimeout(toastTimer);
+      }
+
+      // --- Downloads / clipboard ---
+      function download(filename: string, content: string, type: string) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      async function init() {
+        await classifier.loadData(); // resolves even on failure — no polling
+        render();
+
+        // Clear with undo (no confirm() dialogs)
+        document.getElementById('clearListBtn')?.addEventListener('click', () => {
+          if (shoppingList.list.recipes.length === 0) return;
+          const previous = JSON.parse(JSON.stringify(shoppingList.list));
+          shoppingList.clearAll();
+          render();
+          showToast('List cleared', 'Undo', () => {
+            shoppingList.replaceAll(previous);
+            render();
+          });
+        });
+
+        // Copy as text
+        document.getElementById('copyListBtn')?.addEventListener('click', async () => {
+          const text = buildListText(aggregate(), classifier, shoppingList.list.recipes);
           try {
-            // Use the base URL injected from Astro template
-            const response = await fetch(`${window.BASE_URL}static/food-classification.json`);
-            this.classificationData = await response.json();
-          } catch (error) {
-            console.error('Failed to load food classification data:', error);
+            await navigator.clipboard.writeText(text);
+            showToast('List copied to clipboard');
+          } catch {
+            showToast('Could not access clipboard');
           }
-        }
+        });
 
-        normalizeIngredient(ingredientName) {
-          if (!ingredientName) return '';
+        // CSV export
+        document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
+          download('shopping-list.csv', buildListCsv(aggregate(), classifier), 'text/csv');
+        });
 
-          let normalized = ingredientName.toLowerCase().trim();
+        // JSON backup export
+        document.getElementById('exportJsonBtn')?.addEventListener('click', () => {
+          download(
+            'shopping-list-backup.json',
+            JSON.stringify(shoppingList.list, null, 2),
+            'application/json'
+          );
+          showToast('Backup downloaded');
+        });
 
-          // Remove quantities at the start (e.g., "1 1/4 tsp", "250 grams", "2")
-          normalized = normalized.replace(/^[\d\s\/]*\s*([a-z]*)\s*/, '');
-
-          // Remove common units
-          const units = ['tsp', 'tbsp', 'cup', 'cups', 'oz', 'lb', 'lbs', 'gram', 'grams', 'g', 'kg', 'ml', 'l', 'pinch', 'dash', 'clove', 'cloves'];
-          units.forEach(unit => {
-            const regex = new RegExp(`\\b${unit}\\b`, 'g');
-            normalized = normalized.replace(regex, '');
-          });
-
-          // Remove parenthetical notes like (grated), (finely chopped), etc.
-          normalized = normalized.replace(/\([^)]*\)/g, '');
-
-          // Remove common descriptors
-          const descriptors = ['grated', 'chopped', 'diced', 'minced', 'finely', 'roughly', 'fresh', 'dried', 'ground', 'crushed', 'sliced', 'whole', 'large', 'small', 'medium', 'extra', 'virgin'];
-          descriptors.forEach(descriptor => {
-            const regex = new RegExp(`\\b${descriptor}\\b`, 'g');
-            normalized = normalized.replace(regex, '');
-          });
-
-          // Clean up extra whitespace
-          normalized = normalized.replace(/\s+/g, ' ').trim();
-
-          return normalized;
-        }
-
-        classifyIngredient(ingredientName) {
-          if (!this.classificationData) return 'Other';
-
-          const normalized = this.normalizeIngredient(ingredientName);
-
-          // Priority 1: Exact match to overrides
-          if (this.classificationData.overrides[normalized]) {
-            return this.classificationData.overrides[normalized];
+        // JSON backup import
+        const importInput = document.getElementById('importFileInput') as HTMLInputElement | null;
+        document.getElementById('importJsonBtn')?.addEventListener('click', () => importInput?.click());
+        importInput?.addEventListener('change', async () => {
+          const file = importInput.files?.[0];
+          if (!file) return;
+          try {
+            const data = JSON.parse(await file.text());
+            if (shoppingList.replaceAll(data)) {
+              render();
+              showToast('Backup imported');
+            } else {
+              showToast('File is not a valid shopping list backup');
+            }
+          } catch {
+            showToast('Could not read that file');
           }
+          importInput.value = '';
+        });
 
-          // Priority 2: First rule whose keyword is a substring match
-          for (const rule of this.classificationData.rules) {
-            for (const keyword of rule.contains) {
-              if (normalized.includes(keyword)) {
-                return rule.section;
+        // Print list
+        document.getElementById('printListBtn')?.addEventListener('click', () => window.print());
+
+        // Handle recipe removal (button inside <summary> — don't toggle details)
+        document.getElementById('recipes-list')?.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          if (target.matches('.remove-recipe')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const slug = target.getAttribute('data-slug');
+            if (slug) {
+              const removed = shoppingList.list.recipes.find((r) => r.slug === slug);
+              shoppingList.removeRecipe(slug);
+              render();
+              if (removed) {
+                showToast('Removed "' + removed.title + '"', 'Undo', () => {
+                  shoppingList.addRecipe(removed.slug, removed.title, removed.ingredients);
+                  render();
+                });
               }
             }
           }
+        });
 
-          // Priority 3: Fallback to Other
-          return 'Other';
-        }
-
-        groupIngredientsByCategory(ingredients) {
-          if (!this.classificationData) {
-            return { 'Other': ingredients };
+        // Checked-state persistence for ingredient checkboxes
+        document.getElementById('aggregated-ingredients')?.addEventListener('change', (e) => {
+          const target = e.target as HTMLElement;
+          if (target.matches('.ingredient-checkbox')) {
+            const input = target as HTMLInputElement;
+            const key = input.dataset.key;
+            const label = input.nextElementSibling as HTMLElement | null;
+            if (key) shoppingList.toggleIngredientChecked(key, input.checked);
+            if (label) label.classList.toggle('checked', input.checked);
           }
-
-          const grouped = {};
-
-          // Initialize all sections with empty arrays
-          this.classificationData.sections.forEach(section => {
-            grouped[section] = [];
-          });
-
-          // Group ingredients by category
-          ingredients.forEach(ingredient => {
-            const category = this.classifyIngredient(ingredient.name);
-            if (grouped[category]) {
-              grouped[category].push(ingredient);
-            } else {
-              grouped['Other'].push(ingredient);
-            }
-          });
-
-          // Remove empty sections
-          Object.keys(grouped).forEach(section => {
-            if (grouped[section].length === 0) {
-              delete grouped[section];
-            }
-          });
-
-          return grouped;
-        }
+        });
       }
 
-      class ShoppingListUI {
-        constructor() {
-          this.classifier = new FoodClassifier();
-
-          // Unit conversion constants
-          this.conversions = {
-            // Volume conversions to ml
-            tsp: 5,
-            teaspoon: 5,
-            tbsp: 15,
-            tablespoon: 15,
-            cup: 240,
-            cups: 240,
-            ml: 1,
-            l: 1000,
-            liter: 1000,
-            fl_oz: 29.5735,
-            'fl oz': 29.5735,
-            fluid_ounce: 29.5735,
-
-            // Weight conversions to g
-            g: 1,
-            gram: 1,
-            grams: 1,
-            kg: 1000,
-            kilogram: 1000,
-            kilograms: 1000,
-            oz: 28.3495,
-            ounce: 28.3495,
-            ounces: 28.3495,
-            lb: 453.592,
-            lbs: 453.592,
-            pound: 453.592,
-            pounds: 453.592
-          };
-
-          // Unit normalization map
-          this.unitAliases = {
-            // Volume
-            'tsp.': 'tsp',
-            't': 'tsp',
-            'tbsp.': 'tbsp',
-            't': 'tbsp',
-            'tbs': 'tbsp',
-            'tablespoon': 'tbsp',
-            'teaspoon': 'tsp',
-            'c': 'cup',
-            'fl oz': 'fl_oz',
-            'fl. oz.': 'fl_oz',
-            'fluid ounce': 'fl_oz',
-            'liter': 'l',
-            'litre': 'l',
-
-            // Weight
-            'gram': 'g',
-            'grams': 'g',
-            'kilogram': 'kg',
-            'kilograms': 'kg',
-            'ounce': 'oz',
-            'ounces': 'oz',
-            'pound': 'lb',
-            'pounds': 'lb',
-
-            // Count/each
-            'clove': 'clove',
-            'cloves': 'clove',
-            'can': 'can',
-            'cans': 'can',
-            'package': 'package',
-            'packages': 'package'
-          };
-
-          this.init();
-        }
-
-        // Helper function to normalize ingredient name
-        normalizeName(name) {
-          return this.classifier.normalizeIngredient(name);
-        }
-
-        // Helper function to parse quantity and unit from ingredient
-        parseQuantityAndUnit(ingredient) {
-          // Prefer the already parsed values
-          if (ingredient.baseQuantity !== null && ingredient.baseQuantity !== undefined) {
-            return {
-              qty: ingredient.baseQuantity,
-              unit: ingredient.unit || null
-            };
-          }
-
-          // Fallback: try to parse from ingredient name if it contains leading quantities
-          const nameWithQty = ingredient.name;
-          const qtyMatch = nameWithQty.match(/^([\d\s\/]+)\s*([a-z]*)\s*/i);
-
-          if (qtyMatch) {
-            const qtyStr = qtyMatch[1].trim();
-            const unit = qtyMatch[2] || null;
-
-            // Parse the quantity (handles fractions like "7/12", "1 1/2")
-            const parseFraction = (str) => {
-              if (str.includes('/')) {
-                const parts = str.split(' ');
-                if (parts.length === 2) {
-                  // Mixed number like "1 1/2"
-                  const whole = parseInt(parts[0], 10);
-                  const fraction = parts[1];
-                  const fracParts = fraction.split('/');
-                  if (fracParts.length === 2) {
-                    return whole + (parseInt(fracParts[0], 10) / parseInt(fracParts[1], 10));
-                  }
-                } else if (parts.length === 1) {
-                  // Simple fraction like "7/12"
-                  const fracParts = str.split('/');
-                  if (fracParts.length === 2) {
-                    return parseInt(fracParts[0], 10) / parseInt(fracParts[1], 10);
-                  }
-                }
-              }
-              return parseFloat(str);
-            };
-
-            const qty = parseFraction(qtyStr);
-            return { qty: isNaN(qty) ? null : qty, unit };
-          }
-
-          return { qty: null, unit: null };
-        }
-
-        // Helper function to convert to canonical units
-        toCanonical(qty, unit) {
-          if (qty === null || qty === undefined || unit === null || unit === undefined) {
-            return null;
-          }
-
-          const normalizedUnit = unit.toLowerCase().trim();
-          const canonicalUnit = this.unitAliases[normalizedUnit] || normalizedUnit;
-
-          // Check if it's a volume unit
-          if (this.conversions[canonicalUnit]) {
-            // Volume conversions (canonical: ml)
-            if (['tsp', 'teaspoon', 'tbsp', 'tablespoon', 'cup', 'cups', 'ml', 'l', 'liter', 'fl_oz', 'fluid_ounce'].includes(canonicalUnit)) {
-              const ml = qty * this.conversions[canonicalUnit];
-              return { dimension: 'volume', canonicalQty: ml, canonicalUnit: 'ml' };
-            }
-
-            // Weight conversions (canonical: g)
-            if (['g', 'gram', 'grams', 'kg', 'kilogram', 'kilograms', 'oz', 'ounce', 'ounces', 'lb', 'pound', 'pounds'].includes(canonicalUnit)) {
-              const g = qty * this.conversions[canonicalUnit];
-              return { dimension: 'weight', canonicalQty: g, canonicalUnit: 'g' };
-            }
-          }
-
-          // Count/each units (no conversion)
-          if (['clove', 'can', 'package'].includes(canonicalUnit)) {
-            return { dimension: 'each', canonicalQty: qty, canonicalUnit: 'each' };
-          }
-
-          // Unknown unit
-          return null;
-        }
-
-        // Helper function to convert canonical units back to display units
-        convertToDisplayUnit(canonicalQty, dimension) {
-          if (dimension === 'volume') {
-            // Convert ml to appropriate display unit
-            if (canonicalQty >= 240) {
-              // Show in cups
-              const cups = canonicalQty / 240;
-              return { qty: cups, unit: 'cup' };
-            } else if (canonicalQty >= 15) {
-              // Show in tbsp
-              const tbsp = canonicalQty / 15;
-              return { qty: tbsp, unit: 'tbsp' };
-            } else if (canonicalQty >= 5) {
-              // Show in tsp
-              const tsp = canonicalQty / 5;
-              return { qty: tsp, unit: 'tsp' };
-            } else {
-              // Show in ml
-              return { qty: canonicalQty, unit: 'ml' };
-            }
-          } else if (dimension === 'weight') {
-            // Convert g to appropriate display unit
-            if (canonicalQty >= 1000) {
-              // Show in kg
-              const kg = canonicalQty / 1000;
-              return { qty: kg, unit: 'kg' };
-            } else {
-              // Show in g
-              return { qty: canonicalQty, unit: 'g' };
-            }
-          } else if (dimension === 'each') {
-            return { qty: canonicalQty, unit: '' };
-          }
-
-          return { qty: canonicalQty, unit: '' };
-        }
-
-        aggregateIngredients() {
-          const aggregated = {};
-
-          window.shoppingList.list.recipes.forEach(recipe => {
-            recipe.ingredients.forEach(ingredient => {
-              if (!ingredient.name) return;
-
-              const normalizedName = this.normalizeName(ingredient.name);
-              const { qty, unit } = this.parseQuantityAndUnit(ingredient);
-
-              let key, dimension, canonicalQty;
-
-              if (qty !== null && unit !== null) {
-                const canonical = this.toCanonical(qty, unit);
-                if (canonical) {
-                  // Convertible unit
-                  dimension = canonical.dimension;
-                  canonicalQty = canonical.canonicalQty;
-                  key = `${normalizedName}__${dimension}`;
-                } else {
-                  // Unknown unit - treat as none
-                  dimension = 'none';
-                  canonicalQty = null;
-                  key = `${normalizedName}__none`;
-                }
-              } else {
-                // No quantity or unit - treat as none
-                dimension = 'none';
-                canonicalQty = null;
-                key = `${normalizedName}__none`;
-              }
-
-              if (!aggregated[key]) {
-                aggregated[key] = {
-                  name: ingredient.name,
-                  normalizedName: normalizedName,
-                  dimension: dimension,
-                  canonicalQty: 0,
-                  originalUnit: unit || '',
-                  hasQuantity: qty !== null && unit !== null
-                };
-              }
-
-              // Only sum if we have a convertible quantity
-              if (canonicalQty !== null) {
-                aggregated[key].canonicalQty += canonicalQty;
-                aggregated[key].hasQuantity = true;
-              }
-            });
-          });
-
-          // Convert canonical quantities back to display units
-          return Object.values(aggregated).map(item => {
-            if (item.hasQuantity && item.dimension !== 'none') {
-              const display = this.convertToDisplayUnit(item.canonicalQty, item.dimension);
-              return {
-                name: item.name,
-                unit: display.unit,
-                baseQuantity: display.qty
-              };
-            } else {
-              return {
-                name: item.name,
-                unit: item.originalUnit || '',
-                baseQuantity: item.hasQuantity ? item.canonicalQty : null
-              };
-            }
-          });
-        }
-
-        formatQuantity(quantity) {
-          if (!Number.isFinite(quantity)) return '';
-
-          // Nice fraction formatting (reused from recipe page)
-          function gcd(a, b) {
-            a = Math.abs(a); b = Math.abs(b);
-            while (b) [a, b] = [b, a % b];
-            return a || 1;
-          }
-
-          function toNiceFraction(x) {
-            const whole = Math.floor(x + 1e-10);
-            const frac = x - whole;
-
-            if (frac < 1e-6) return { whole, num: 0, den: 1 };
-
-            const dens = [2, 3, 4, 6, 8, 12, 16];
-            let best = { num: 0, den: 1, err: Infinity };
-
-            for (const den of dens) {
-              const num = Math.round(frac * den);
-              const approx = num / den;
-              const err = Math.abs(frac - approx);
-              if (err < best.err) best = { num, den, err };
-            }
-
-            const g = gcd(best.num, best.den);
-            const num = best.num / g;
-            const den = best.den / g;
-
-            if (num === den) return { whole: whole + 1, num: 0, den: 1 };
-            return { whole, num, den };
-          }
-
-          function formatQty(x) {
-            if (!Number.isFinite(x)) return "";
-            if (x === 0) return "0";
-
-            const { whole, num, den } = toNiceFraction(x);
-
-            if (num === 0) return String(whole);
-            if (whole === 0) return `${num}/${den}`;
-            return `${whole} ${num}/${den}`;
-          }
-
-          return formatQty(quantity);
-        }
-
-        render() {
-          const emptyState = document.getElementById('empty-state');
-          const content = document.getElementById('shopping-list-content');
-          const recipesList = document.getElementById('recipes-list');
-          const aggregatedIngredients = document.getElementById('aggregated-ingredients');
-          const listStats = document.getElementById('listStats');
-
-          if (!window.shoppingList || !window.shoppingList.list.recipes.length) {
-            emptyState.style.display = 'block';
-            content.style.display = 'none';
-            return;
-          }
-
-          emptyState.style.display = 'none';
-          content.style.display = 'block';
-
-          // Update stats
-          const totalIngredients = window.shoppingList.list.recipes.reduce((sum, recipe) =>
-            sum + (recipe.ingredients ? recipe.ingredients.length : 0), 0);
-          listStats.textContent = `${window.shoppingList.list.recipes.length} recipe${window.shoppingList.list.recipes.length !== 1 ? 's' : ''}, ${totalIngredients} ingredient${totalIngredients !== 1 ? 's' : ''}`;
-
-          // Render recipes list
-          recipesList.innerHTML = '';
-          window.shoppingList.list.recipes.forEach(recipe => {
-            const recipeItem = document.createElement('div');
-            recipeItem.className = 'recipe-item';
-            recipeItem.innerHTML = `
-              <span class="recipe-title">${recipe.title}</span>
-              <button type="button" class="remove-recipe" data-slug="${recipe.slug}" title="Remove recipe">×</button>
-            `;
-            recipesList.appendChild(recipeItem);
-          });
-
-          // Render aggregated ingredients with checkboxes, grouped by category
-          const aggregated = this.aggregateIngredients();
-          aggregatedIngredients.innerHTML = '';
-
-          if (aggregated.length === 0) {
-            aggregatedIngredients.innerHTML = '<p class="no-ingredients">No ingredients to show</p>';
-          } else {
-            // Sort by name first
-            aggregated.sort((a, b) => a.name.localeCompare(b.name));
-
-            // Group by category
-            const grouped = this.classifier.groupIngredientsByCategory(aggregated);
-            let ingredientIndex = 0;
-
-            // Render each category
-            Object.keys(grouped).forEach(category => {
-              const categorySection = document.createElement('div');
-              categorySection.className = 'category-section';
-
-              const categoryHeader = document.createElement('h4');
-              categoryHeader.className = 'category-header';
-              categoryHeader.textContent = category;
-              categorySection.appendChild(categoryHeader);
-
-              const categoryList = document.createElement('div');
-              categoryList.className = 'category-ingredients';
-
-              grouped[category].forEach(ingredient => {
-                const ingredientDiv = document.createElement('div');
-                ingredientDiv.className = 'aggregated-item';
-
-                const quantityText = ingredient.baseQuantity > 0
-                  ? `${this.formatQuantity(ingredient.baseQuantity)}${ingredient.unit ? ' ' + ingredient.unit : ''} `
-                  : '';
-
-                ingredientDiv.innerHTML = `
-                  <div class="ingredient-main">
-                    <input type="checkbox" id="ingredient-${ingredientIndex}" class="ingredient-checkbox">
-                    <label for="ingredient-${ingredientIndex}" class="ingredient-label">
-                      <span class="ingredient-quantity">${quantityText}</span>
-                      <span class="ingredient-name">${ingredient.name}</span>
-                    </label>
-                  </div>
-                `;
-                categoryList.appendChild(ingredientDiv);
-                ingredientIndex++;
-              });
-
-              categorySection.appendChild(categoryList);
-              aggregatedIngredients.appendChild(categorySection);
-            });
-          }
-        }
-
-        init() {
-          // Wait a bit for global shopping list to be ready and classification data to load
-          setTimeout(async () => {
-            // Wait for classification data to load
-            if (this.classifier.classificationData === null) {
-              await new Promise(resolve => {
-                const checkData = () => {
-                  if (this.classifier.classificationData !== null) {
-                    resolve();
-                  } else {
-                    setTimeout(checkData, 50);
-                  }
-                };
-                checkData();
-              });
-            }
-
-            this.render();
-
-            // Attach event listeners
-            document.getElementById('clearListBtn').addEventListener('click', () => {
-              if (window.shoppingList.list.recipes.length > 0 && confirm('Are you sure you want to clear your entire shopping list?')) {
-                window.shoppingList.clearAll();
-                this.render();
-              }
-            });
-
-            // Handle recipe removal
-            document.getElementById('recipes-list').addEventListener('click', (e) => {
-              if (e.target.matches('.remove-recipe')) {
-                const slug = e.target.getAttribute('data-slug');
-                window.shoppingList.removeRecipe(slug);
-                this.render();
-              }
-            });
-
-            // Handle ingredient checkboxes
-            document.getElementById('aggregated-ingredients').addEventListener('change', (e) => {
-              if (e.target.matches('.ingredient-checkbox')) {
-                const label = e.target.nextElementSibling;
-                if (label) {
-                  label.classList.toggle('checked', e.target.checked);
-                }
-              }
-            });
-
-          }, 100);
-        }
-      }
-
-      // Initialize shopping list UI only on this page
-      if (document.querySelector('.shopping-list-container')) {
-        const shoppingListUI = new ShoppingListUI();
-      }
+      init().catch((err) => console.error('Shopping list failed to initialize:', err));
     </script>
   </Fragment>
 </Layout>
 
 <style>
   .page-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .button.icon-only {
+    padding: 0.5rem 0.6rem;
   }
 
   .header-top {
@@ -638,6 +264,83 @@ const baseUrl = import.meta.env.BASE_URL;
   .header-actions {
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--text);
+    color: var(--bg);
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    z-index: 1500;
+    font-weight: 600;
+  }
+
+  .toast-action {
+    border: 0;
+    background: transparent;
+    color: var(--accent-2);
+    font-weight: 800;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .recipe-item {
+    padding: 0;
+  }
+
+  .recipe-item details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .recipe-item summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .recipe-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .recipe-item .recipe-count {
+    color: var(--muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .recipe-ingredients {
+    margin: 0;
+    padding: 0.25rem 1rem 0.75rem 2rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  @media print {
+    .header-actions,
+    .back-button,
+    .theme-toggle-container {
+      display: none !important;
+    }
+
+    .toast {
+      display: none !important;
+    }
   }
 
   .shopping-list-container {
@@ -652,9 +355,9 @@ const baseUrl = import.meta.env.BASE_URL;
   }
 
   .empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+    color: var(--text-2);
     opacity: 0.6;
+    margin-bottom: 1rem;
   }
 
   .empty-state h2 {
@@ -838,33 +541,9 @@ const baseUrl = import.meta.env.BASE_URL;
     text-align: center;
   }
 
-  .back-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--accent-2);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    border: 0;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
 
-  .back-button:hover {
-    background: #0770c9;
-    text-decoration: none;
-  }
 
-  html[data-theme="dark"] .back-button {
-    background: #5db2ff;
-  }
 
-  html[data-theme="dark"] .back-button:hover {
-    background: #7dc3ff;
-  }
 
   .button {
     background: var(--accent-2);
@@ -882,7 +561,7 @@ const baseUrl = import.meta.env.BASE_URL;
   }
 
   .button:hover {
-    background: #0770c9;
+    background: var(--surface-2);
     text-decoration: none;
   }
 
@@ -900,11 +579,5 @@ const baseUrl = import.meta.env.BASE_URL;
     background: var(--border);
   }
 
-  html[data-theme="dark"] .button {
-    background: #5db2ff;
-  }
 
-  html[data-theme="dark"] .button:hover {
-    background: #7dc3ff;
-  }
 </style>

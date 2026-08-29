@@ -1,0 +1,547 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { getAllRecipes, resolveSteps } from "../../../lib/recipes";
+import Icon from "../../../components/Icon.astro";
+import { formatQtyWithUnit } from "../../../lib/quantities";
+
+export async function getStaticPaths() {
+  return getAllRecipes().map((recipe) => ({
+    params: { slug: recipe.slug },
+    props: { recipe },
+  }));
+}
+
+const { recipe: loaded } = Astro.props;
+const { slug } = loaded;
+const recipe = loaded.parsed;
+const title = loaded.title;
+
+const resolvedSteps = resolveSteps(recipe);
+const base = import.meta.env.BASE_URL;
+const recipeUrl = `${base}recipes/${slug}/`;
+---
+
+<Layout title={`Cook: ${title}`} description={`Step-by-step cooking mode for ${title}`}>
+  <div class="cook-root" data-cook-root data-cook-slug={slug}>
+    <header class="cook-header">
+      <a href={recipeUrl} class="cook-exit" aria-label="Exit cooking mode">✕ Exit</a>
+      <div class="cook-title">{title}</div>
+      <div class="cook-progress-text" id="cookProgressText" aria-live="polite">1 / {resolvedSteps.length + 1}</div>
+    </header>
+
+    <div class="cook-progress-track" aria-hidden="true">
+      <div class="cook-progress-bar" id="cookProgressBar"></div>
+    </div>
+
+    <div id="cookResume" class="cook-resume" hidden>
+      <span id="cookResumeText"></span>
+      <button type="button" id="cookResumeBtn" class="cook-btn primary">Resume</button>
+      <button type="button" id="cookRestartBtn" class="cook-btn">Start over</button>
+    </div>
+
+    <main class="cook-stage" id="cookStage">
+      {resolvedSteps.map((step, idx) => (
+        <section class="cook-step" data-step-index={idx} hidden>
+          <p class="cook-instruction">
+            {step.tokens.map((token) => {
+              if (token.kind === "text") return token.text;
+
+              if (token.kind === "ingredient") {
+                const qty =
+                  token.quantity !== null && token.quantity !== undefined
+                    ? `${formatQtyWithUnit(token.quantity, token.unit)} `
+                    : "";
+                return <code class="cook-tok cook-tok-ing">{qty}{token.text}</code>;
+              }
+
+              if (token.kind === "cookware") {
+                return <code class="cook-tok cook-tok-cw">{token.text}</code>;
+              }
+
+              if (token.kind === "timer") {
+                if (token.durationSeconds === null || token.durationSeconds === undefined) return null;
+                return (
+                  <button
+                    type="button"
+                    class="cook-tok cook-timer"
+                    data-duration={token.durationSeconds}
+                    aria-label={`Start ${token.text} timer`}
+                  >
+                    <span class="cook-timer-label" aria-hidden="true">⏱</span>
+                    <span class="cook-timer-text">{token.text}</span>
+                  </button>
+                );
+              }
+
+              return "";
+            })}
+          </p>
+        </section>
+      ))}
+
+      <section class="cook-step cook-finished" data-step-index={resolvedSteps.length} hidden>
+        <Icon name="recipes" size={64} class="cook-done-icon" />
+        <h2>Enjoy!</h2>
+        <p class="cook-done-text">{title}</p>
+        <a href={recipeUrl} class="cook-btn primary">Back to recipe</a>
+      </section>
+    </main>
+
+    <footer class="cook-footer">
+      <button type="button" id="cookPrev" class="cook-btn nav" aria-label="Previous step">←</button>
+      <button type="button" id="cookDone" class="cook-btn primary done">
+        <span aria-hidden="true">✓</span> Done
+      </button>
+      <button type="button" id="cookNext" class="cook-btn nav" aria-label="Next step">→</button>
+    </footer>
+  </div>
+
+  <script>
+    const root = document.querySelector<HTMLElement>('[data-cook-root]');
+    if (root) {
+      const slug = root.dataset.cookSlug ?? 'unknown';
+      const stepEls = Array.from(root.querySelectorAll<HTMLElement>('[data-step-index]'));
+      const total = stepEls.length; // includes the "finished" step
+      const progressText = document.getElementById('cookProgressText')!;
+      const progressBar = document.getElementById('cookProgressBar')!;
+      const resumeBox = document.getElementById('cookResume')!;
+      const resumeText = document.getElementById('cookResumeText')!;
+
+      const STORAGE_KEY = `cook:${slug}`;
+      const FINAL_STEP = total - 1;
+
+      interface CookState {
+        step: number;
+        visited: number[];
+      }
+
+      function loadState(): CookState | null {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          const data = JSON.parse(raw);
+          if (typeof data.step !== 'number' || data.step < 0 || data.step > FINAL_STEP) return null;
+          return { step: data.step, visited: Array.isArray(data.visited) ? data.visited : [] };
+        } catch {
+          return null;
+        }
+      }
+
+      function saveState(state: CookState) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch {
+          /* storage unavailable — session-only */
+        }
+      }
+
+      function clearState() {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      let current = 0;
+      const visited = new Set<number>();
+
+      function show(step: number) {
+        current = Math.max(0, Math.min(FINAL_STEP, step));
+        visited.add(current);
+
+        stepEls.forEach((el) => {
+          el.hidden = Number(el.dataset.stepIndex) !== current;
+        });
+
+        progressText.textContent = `${current + 1} / ${total}`;
+        progressBar.style.width = `${((current + 1) / total) * 100}%`;
+
+        const prevBtn = document.getElementById('cookPrev')!;
+        const doneBtn = document.getElementById('cookDone')!;
+        const nextBtn = document.getElementById('cookNext')!;
+        prevBtn.disabled = current === 0;
+        const isFinal = current === FINAL_STEP;
+        doneBtn.hidden = isFinal;
+        nextBtn.disabled = isFinal;
+
+        saveState({ step: current, visited: Array.from(visited) });
+        root.scrollIntoView();
+        document.querySelector<HTMLElement>('.cook-step:not([hidden])')?.scrollIntoView({ block: 'start' });
+      }
+
+      function next() {
+        show(current + 1);
+      }
+      function prev() {
+        show(current - 1);
+      }
+
+      document.getElementById('cookNext')!.addEventListener('click', next);
+      document.getElementById('cookPrev')!.addEventListener('click', prev);
+      document.getElementById('cookDone')!.addEventListener('click', next);
+
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') next();
+        else if (e.key === 'ArrowLeft') prev();
+      });
+
+      // --- Resume ---
+      const saved = loadState();
+      if (saved && saved.step > 0 && saved.step < FINAL_STEP) {
+        resumeText.textContent = `You were on step ${saved.step + 1} of ${total - 1}`;
+        resumeBox.hidden = false;
+        document.getElementById('cookResumeBtn')!.addEventListener('click', () => {
+          resumeBox.hidden = true;
+          show(saved.step);
+        });
+        document.getElementById('cookRestartBtn')!.addEventListener('click', () => {
+          resumeBox.hidden = true;
+          clearState();
+          show(0);
+        });
+        // Stay on step 0 until the user chooses.
+      } else {
+        show(0);
+      }
+
+      // --- Timers ---
+      let audioCtx: AudioContext | null = null;
+
+      function beep() {
+        try {
+          audioCtx = audioCtx ?? new (window.AudioContext || (window as any).webkitAudioContext)();
+          const ctx = audioCtx;
+          [0, 0.25, 0.5].forEach((offset) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.2, ctx.currentTime + offset);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.2);
+            osc.start(ctx.currentTime + offset);
+            osc.stop(ctx.currentTime + offset + 0.22);
+          });
+        } catch {
+          /* audio unavailable */
+        }
+        try {
+          navigator.vibrate?.([300, 120, 300]);
+        } catch {
+          /* vibration unsupported */
+        }
+      }
+
+      const timers = new Map<HTMLElement, { remaining: number; interval: ReturnType<typeof setInterval> }>();
+
+      root.querySelectorAll<HTMLButtonElement>('.cook-timer').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const running = timers.get(chip);
+          if (running) {
+            clearInterval(running.interval);
+            timers.delete(chip);
+            chip.classList.remove('running', 'finished');
+            const label = chip.querySelector('.cook-timer-text');
+            if (label) label.textContent = chip.dataset.durationText ?? label.textContent;
+            return;
+          }
+
+          // Start (or restart) a countdown
+          audioCtx = audioCtx ?? null; // AudioContext is created inside beep() on completion
+          const duration = Number(chip.dataset.duration ?? '0');
+          if (!Number.isFinite(duration) || duration <= 0) return;
+
+          chip.classList.remove('finished');
+          chip.classList.add('running');
+          const label = chip.querySelector('.cook-timer-text');
+
+          const state = { remaining: duration, interval: 0 as unknown as ReturnType<typeof setInterval> };
+          const format = (s: number) => {
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return m > 0 ? `${m}:${String(sec).padStart(2, '0')}` : `${sec}s`;
+          };
+
+          if (label) {
+            chip.dataset.durationText = chip.dataset.durationText ?? label.textContent ?? '';
+            label.textContent = format(duration);
+          }
+
+          state.interval = setInterval(() => {
+            state.remaining -= 1;
+            if (state.remaining <= 0) {
+              clearInterval(state.interval);
+              timers.delete(chip);
+              chip.classList.remove('running');
+              chip.classList.add('finished');
+              if (label) label.textContent = chip.dataset.durationText ?? '';
+              beep();
+              return;
+            }
+            if (label) label.textContent = format(state.remaining);
+          }, 1000);
+
+          timers.set(chip, state);
+        });
+      });
+
+      // --- Wake lock: keep the screen on while cooking ---
+      let wakeLock: any = null;
+
+      async function requestWakeLock() {
+        try {
+          wakeLock = await (navigator as any).wakeLock?.request('screen');
+        } catch {
+          /* denied or unsupported */
+        }
+      }
+
+      function releaseWakeLock() {
+        try {
+          wakeLock?.release();
+          wakeLock = null;
+        } catch {
+          /* ignore */
+        }
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') releaseWakeLock();
+        else if (wakeLock !== null) requestWakeLock();
+      });
+      window.addEventListener('pagehide', releaseWakeLock);
+
+      // First interaction (Done/Next/timer) keeps the screen on.
+      const wakeOnce = () => {
+        requestWakeLock();
+        document.removeEventListener('click', wakeOnce);
+      };
+      document.addEventListener('click', wakeOnce);
+
+      // Exit cleaning: leaving via Exit link is fine; state resumes next time.
+      // "Start over" clears state explicitly (handled above).
+    }
+  </script>
+</Layout>
+
+<style>
+  /* Full-screen overlay, independent of the base layout padding */
+  .cook-root {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .cook-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .cook-exit {
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .cook-exit:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .cook-title {
+    flex: 1;
+    font-weight: 800;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cook-progress-text {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .cook-progress-track {
+    height: 4px;
+    background: var(--border);
+  }
+
+  .cook-progress-bar {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.25s ease;
+  }
+
+  .cook-resume {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1.25rem;
+    background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cook-stage {
+    flex: 1;
+    overflow-y: auto;
+    padding: clamp(1.5rem, 5vw, 4rem);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .cook-step {
+    max-width: 46rem;
+    width: 100%;
+  }
+
+  .cook-step[hidden] {
+    display: none;
+  }
+
+  .cook-instruction {
+    font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+    line-height: 1.45;
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .cook-tok {
+    display: inline-block;
+    padding: 0.1em 0.35em;
+    border-radius: 0.35em;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 0.85em;
+  }
+
+  .cook-tok-ing {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .cook-tok-cw {
+    color: var(--accent-2);
+    border-color: var(--accent-2);
+  }
+
+  .cook-timer {
+    cursor: pointer;
+    font: inherit;
+    color: var(--accent);
+    border-color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+  }
+
+  .cook-timer.running {
+    background: var(--accent);
+    color: white;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cook-timer.finished {
+    background: #2e7d32;
+    border-color: #2e7d32;
+    color: white;
+    animation: cook-pulse 0.6s ease 3;
+  }
+
+  @keyframes cook-pulse {
+    50% {
+      transform: scale(1.08);
+    }
+  }
+
+  .cook-finished {
+    text-align: center;
+    padding-top: 4rem;
+  }
+
+  .cook-done-icon {
+    color: var(--primary);
+    margin: 0 auto;
+  }
+
+  .cook-done-text {
+    color: var(--muted);
+  }
+
+  .cook-footer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .cook-btn {
+    font: inherit;
+    font-weight: 800;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 0.7rem 1.4rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .cook-btn:hover {
+    background: var(--border);
+    text-decoration: none;
+  }
+
+  .cook-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .cook-btn.primary:hover {
+    background: var(--primary-darken);
+  }
+
+  .cook-btn.nav {
+    min-width: 3.5rem;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .cook-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .cook-footer .done {
+    flex: 1;
+    justify-content: center;
+  }
+
+  @media print {
+    .cook-root {
+      display: none !important;
+    }
+  }
+</style>

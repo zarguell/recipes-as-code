@@ -1,0 +1,14 @@
+# Collections ("cookbooks") — static saved views over your recipe library.
+# Each entry becomes a page at /collections/<slug>/ and appears in the sidebar.
+# A recipe appears in a collection when it matches ANY of the tags
+# (or the category, when given).
+collections:
+  - name: Vegan
+    description: Plant-based recipes
+    tags: [vegan, plant-based]
+  - name: Pasta night
+    tags: [pasta]
+  - name: Cocktails
+    tags: [cocktails, mixology]
+  - name: Breakfast
+    tags: [breakfast]

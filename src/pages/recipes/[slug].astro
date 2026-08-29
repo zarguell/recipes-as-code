@@ -1,161 +1,68 @@
 ---
-import { readdir } from "fs/promises";
-import { resolve } from "path";
-import { readFileSync } from "fs";
-import { Recipe } from "@tmlmt/cooklang-parser";
-import * as yaml from "js-yaml";
 import JsonLdSchema from "../../components/JsonLdSchema.astro";
+import Icon from "../../components/Icon.astro";
 import IngredientList from "../../components/IngredientList.astro";
 import RecipeSteps from "../../components/RecipeSteps.astro";
 import CookwareList from "../../components/CookwareList.astro";
 import CooklangSourceBlock from "../../components/CooklangSourceBlock.astro";
-import ThemeToggle from "../../components/ThemeToggle.astro";
 import Layout from "../../layouts/Layout.astro";
+import { buildRecipeJsonLd } from "../../utils/recipe-metadata";
+import { getAllRecipes, slugifyTag, extractSteps } from "../../lib/recipes";
 
 export async function getStaticPaths() {
-  const recipesDir = resolve("recipes");
-  const files = await readdir(recipesDir);
-  const cookFiles = files.filter((f) => f.endsWith(".cook"));
-
-  return cookFiles.map((file) => ({
-    params: { slug: file.replace(".cook", "") },
+  // Single shared loading pipeline (recursive discovery, frontmatter merge).
+  return getAllRecipes().map((recipe) => ({
+    params: { slug: recipe.slug },
+    props: { recipe },
   }));
 }
 
-const { slug } = Astro.params;
-const recipePath = resolve("recipes", `${slug}.cook`);
-const content = readFileSync(recipePath, "utf-8");
-
-// Extract YAML frontmatter
-let frontmatter = {};
-let recipeContent = content;
-
-const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-if (frontmatterMatch) {
-  try {
-    frontmatter = yaml.load(frontmatterMatch[1]) || {};
-    recipeContent = frontmatterMatch[2];
-  } catch (e) {
-    console.error(`Error parsing YAML frontmatter in ${slug}:`, e);
-  }
-}
-
-let recipe;
-let parseError = null;
-
-try {
-  recipe = new Recipe(recipeContent);
-} catch (error) {
-  console.error(`Error parsing recipe ${slug}:`, error.message);
-  parseError = error.message;
-  recipe = {
-    metadata: {},
-    ingredients: [],
-    sections: [],
-    cookware: [],
-    timers: [],
-  };
-}
-
-// Merge frontmatter with parsed metadata - frontmatter takes priority
-recipe.metadata = { ...recipe.metadata, ...frontmatter };
+const { recipe: loaded } = Astro.props;
+const { slug } = loaded;
+// `recipe` keeps its historical shape (parsed Recipe with merged metadata)
+// so the template below stays unchanged.
+const recipe = loaded.parsed;
 
 const ingredients = recipe.ingredients || [];
 const cookwareList = recipe.cookware || [];
 const timersList = recipe.timers || [];
 
-// Extract steps from sections
-const steps = [];
-if (recipe.sections) {
-  for (const section of recipe.sections) {
-    if (section.content) {
-      const sectionSteps = section.content.filter((item: any) => item.type === "step");
-      steps.push(...sectionSteps);
-    }
-  }
-}
-
-// Helper to extract text from step items for JSON-LD
-function getStepText(items: any[]) {
-  if (!items || items.length === 0) return "";
-
-  return items
-    .map((item) => {
-      if (item.type === "text") return item.value;
-      if (item.type === "ingredient") return item.displayName || item.name || "";
-
-      if (item.type === "cookware") {
-        const cookwareItem = cookwareList[item.value];
-        return cookwareItem?.name || "cookware";
-      }
-
-      if (item.type === "timer") {
-        const timerItem = timersList[item.value];
-        if (!timerItem) return "timer";
-        const quantity = timerItem.duration?.value?.value || "";
-        const unit = timerItem.unit || "minutes";
-        return `${quantity} ${unit}`;
-      }
-
-      return "";
-    })
-    .join("");
-}
+// Extract steps from all sections, in order
+const steps = extractSteps(recipe);
 
 const imageUrl = recipe.metadata.image?.replace(/^["']|["']$/g, "") || null;
-const tags = recipe.metadata.tags || [];
+const tags: string[] = recipe.metadata.tags || [];
 const source = recipe.metadata.source;
 
-
-// Generate JSON-LD schema
-const jsonLd = {
-  "@context": "https://schema.org/",
-  "@type": "Recipe",
-  name: recipe.metadata.title || slug,
-  description: recipe.metadata.description || "",
-  image: imageUrl,
-  prepTime: recipe.metadata["prep-time"] ? `PT${recipe.metadata["prep-time"]}` : null,
-  cookTime: recipe.metadata["cook-time"] ? `PT${recipe.metadata["cook-time"]}` : null,
-  totalTime: recipe.metadata["total-time"] ? `PT${recipe.metadata["total-time"]}` : null,
-  recipeYield: recipe.metadata.servings || null,
-  recipeCategory: recipe.metadata.category || null,
-  recipeCuisine: recipe.metadata.cuisine || null,
-  keywords: tags.join(", "),
-  author: { "@type": "Person", name: recipe.metadata.author || "Unknown" },
-  recipeIngredient: ingredients.map((ing) => {
-    let str = ing.name || "";
-    if (ing.quantity?.value?.value !== undefined) {
-      const qty = ing.quantity.value.value;
-      str = `${qty}${ing.unit ? ` ${ing.unit}` : ""} ${str}`;
-    }
-    return str;
-  }),
-  recipeInstructions: steps.map((step: any, idx: number) => ({
-    "@type": "HowToStep",
-    position: idx + 1,
-    text: getStepText(step.items || []),
-  })),
-};
+// Generate JSON-LD schema (cookware/timers forwarded correctly now)
+const jsonLd = buildRecipeJsonLd({ slug, title: loaded.title, parsed: recipe });
 ---
 
 <Layout title={recipe.metadata.title || slug} description={recipe.metadata.description} image={imageUrl}>
-  <Fragment slot="theme-toggle">
-    <ThemeToggle />
-  </Fragment>
 
   <Fragment slot="head">
     <JsonLdSchema schema={jsonLd} />
   </Fragment>
 
-  <div class="recipe-header">
-    <a href={import.meta.env.BASE_URL} class="back-button">← Back to recipes</a>
-    <h1>{recipe.metadata.title || slug}</h1>
-    {recipe.metadata.description && <p>{recipe.metadata.description}</p>}
+  <div class="recipe-header" data-pagefind-body>
+    <h1>
+      {recipe.metadata.title || slug}
+      <button
+        type="button"
+        class="fav-star"
+        data-fav
+        data-fav-slug={slug}
+        aria-pressed="false"
+        aria-label={`Add ${recipe.metadata.title || slug} to favorites`}
+        title="Favorite"
+      >★</button>
+    </h1>
+    {recipe.metadata.description && <p class="recipe-description">{recipe.metadata.description}</p>}
 
     {tags.length > 0 && (
       <div class="tags">
         {tags.map((tag: string) => (
-          <a href={`${import.meta.env.BASE_URL}tags/${tag}/`} class="tag">
+          <a href={`${import.meta.env.BASE_URL}tags/${slugifyTag(tag)}/`} class="tag">
             #{tag}
           </a>
         ))}
@@ -169,30 +76,40 @@ const jsonLd = {
       </div>
     )}
 
-    <div class="recipe-controls" data-recipe-controls>
-      <button type="button" class="button secondary" id="recipePrintBtn">🖨️ Print</button>
-      <button type="button" class="button primary" id="addToShoppingListBtn"
+    <div class="recipe-controls" data-recipe-controls data-pagefind-ignore>
+      <a class="button primary" href={`${import.meta.env.BASE_URL}recipes/${slug}/cook/`}>
+        <Icon name="list" size={18} /> Start cooking
+      </a>
+      <button type="button" class="button" id="addToShoppingListBtn"
               data-recipe-slug={slug}
               data-recipe-title={recipe.metadata.title || slug}>
-        🛒 Add to Shopping List
+        <Icon name="cart" size={18} /> Add to Shopping List
+      </button>
+      <button type="button" class="button icon-only" id="recipePrintBtn" aria-label="Print recipe" title="Print">
+        <Icon name="printer" size={18} />
       </button>
 
-      <label class="scale">
-        <span class="scale-label">Scale</span>
+      <div class="scale" role="group" aria-label="Recipe scaling">
+        <button type="button" class="scale-btn" id="scaleMinus" aria-label="Decrease scale">−</button>
         <input
           id="recipeScaleInput"
           type="number"
           inputmode="decimal"
           step="0.1"
           min="0.1"
+          max="99"
           value="1"
+          aria-label="Scale factor"
         />
-        <span class="scale-suffix">×</span>
-      </label>
+        <span class="scale-suffix" aria-hidden="true">×</span>
+        <button type="button" class="scale-btn" id="scalePlus" aria-label="Increase scale">+</button>
+      </div>
+      <span class="scaled-servings" id="scaledServings" aria-live="polite"></span>
+      <p class="print-scale-note" id="printScaleNote" aria-hidden="true"></p>
     </div>
   </div>
 
-  <div class="hero-section">
+  <div class="hero-section" data-pagefind-body>
     <div class="recipe-image-container">
       {imageUrl ? (
         <img
@@ -204,52 +121,47 @@ const jsonLd = {
         />
       ) : null}
       <div class="image-fallback" style={imageUrl ? "display: none;" : "display: flex;"}>
-        <span class="fallback-icon">🍳</span>
+        <Icon name="recipes" size={44} class="fallback-icon" />
         <span class="fallback-text">No Image</span>
       </div>
     </div>
 
     <div class="recipe-meta">
-      {recipe.metadata?.servings && (
-        <div class="meta-item">
-          <div class="meta-label">Servings</div>
-          <div class="meta-value">{recipe.metadata.servings}</div>
-        </div>
-      )}
-
-      {recipe.metadata?.["prep-time"] && (
-        <div class="meta-item">
-          <div class="meta-label">Prep Time</div>
-          <div class="meta-value">{recipe.metadata["prep-time"]}</div>
-        </div>
-      )}
-
-      {recipe.metadata?.["cook-time"] && (
-        <div class="meta-item">
-          <div class="meta-label">Cook Time</div>
-          <div class="meta-value">{recipe.metadata["cook-time"]}</div>
-        </div>
-      )}
-
       {recipe.metadata?.["total-time"] && (
-        <div class="meta-item">
-          <div class="meta-label">Total Time</div>
-          <div class="meta-value">{recipe.metadata["total-time"]}</div>
-        </div>
+        <span class="meta-chip">
+          <Icon name="clock" size={15} />
+          {recipe.metadata["total-time"]}
+        </span>
+      )}
+      {recipe.metadata?.["prep-time"] && (
+        <span class="meta-chip">
+          prep {recipe.metadata["prep-time"]}
+        </span>
+      )}
+      {recipe.metadata?.["cook-time"] && (
+        <span class="meta-chip">
+          cook {recipe.metadata["cook-time"]}
+        </span>
+      )}
+      {recipe.metadata?.servings && (
+        <span class="meta-chip">
+          <Icon name="recipes" size={15} />
+          <span data-base-servings>{recipe.metadata.servings}</span> servings
+        </span>
       )}
     </div>
   </div>
 
-  <div class="recipe-content">
+  <div class="recipe-content" data-pagefind-body>
     <div class="recipe-column">
       <div class="recipe-section">
-        <h2>🥘 Ingredients</h2>
+        <h2 class="section-title"><Icon name="cart" size={20} /> Ingredients</h2>
         <IngredientList ingredients={ingredients} />
       </div>
 
       {cookwareList.length > 0 && (
         <div class="recipe-section">
-          <h2>🍳 Cookware</h2>
+          <h2 class="section-title"><Icon name="list" size={20} /> Cookware</h2>
           <CookwareList cookware={cookwareList} />
         </div>
       )}
@@ -257,9 +169,9 @@ const jsonLd = {
 
     <div class="recipe-column">
       <div class="recipe-section">
-        <h2>👨‍🍳 Instructions</h2>
+        <h2 class="section-title"><Icon name="check" size={20} /> Instructions</h2>
         {steps.length > 0 ? (
-          <RecipeSteps steps={steps} cookware={cookwareList} timers={timersList} />
+          <RecipeSteps parsed={recipe} />
         ) : (
           <p>No instructions found</p>
         )}
@@ -267,182 +179,80 @@ const jsonLd = {
     </div>
   </div>
 
-  <CooklangSourceBlock slug={slug} text={content} />
+  <CooklangSourceBlock slug={slug} text={loaded.rawContent} />
 
   <Fragment slot="scripts">
-    <script is:inline>
+    <script type="module">
+      import { formatQty } from '../../lib/quantities';
+      import { applyScale } from '../../scripts/recipe-scaler.ts';
+      import { recordRecent, isFavorite, toggleFavorite } from '../../scripts/library-store';
+
+      recordRecent(document.querySelector('[data-fav]')?.getAttribute('data-fav-slug') ?? '');
+      document.querySelectorAll<HTMLElement>('[data-fav]').forEach((btn) => {
+        const slug = btn.dataset.favSlug ?? '';
+        btn.setAttribute('aria-pressed', String(isFavorite(slug)));
+        btn.addEventListener('click', () => {
+          const active = toggleFavorite(slug);
+          btn.setAttribute('aria-pressed', String(active));
+        });
+      });
+
       const controls = document.querySelector("[data-recipe-controls]");
       if (controls) {
         const printBtn = document.getElementById("recipePrintBtn");
         const scaleInput = document.getElementById("recipeScaleInput");
+        const scaledServings = document.getElementById("scaledServings");
+        const printScaleNote = document.getElementById("printScaleNote");
 
-        // Greatest common divisor for simplifying fractions
-        function gcd(a, b) {
-          a = Math.abs(a); b = Math.abs(b);
-          while (b) [a, b] = [b, a % b];
-          return a || 1;
+        // Base servings from metadata (may be "4" or "4 servings").
+        const metaServings = document.querySelector("[data-base-servings]");
+        const baseServings = metaServings ? parseFloat(metaServings.textContent || "") : NaN;
+
+        function currentScale() {
+          const mult = Number(scaleInput?.value || "1");
+          return Number.isFinite(mult) && mult > 0 ? mult : 1;
         }
 
-        // Convert decimal -> nice fraction (limited denominators)
-        function toNiceFraction(x) {
-          // handle whole numbers
-          const whole = Math.floor(x + 1e-10);
-          const frac = x - whole;
-
-          if (frac < 1e-6) return { whole, num: 0, den: 1 };
-
-          // common kitchen denominators
-          const dens = [2, 3, 4, 6, 8, 12, 16];
-          let best = { num: 0, den: 1, err: Infinity };
-
-          for (const den of dens) {
-            const num = Math.round(frac * den);
-            const approx = num / den;
-            const err = Math.abs(frac - approx);
-            if (err < best.err) best = { num, den, err };
+        function updateScaleUI() {
+          const mult = currentScale();
+          applyScale(mult);
+          if (scaledServings) {
+            scaledServings.textContent =
+              Number.isFinite(baseServings)
+                ? `${formatQty(baseServings * mult)} servings`
+                : `\u00d7${formatQty(mult)}`;
           }
-
-          // simplify
-          const g = gcd(best.num, best.den);
-          const num = best.num / g;
-          const den = best.den / g;
-
-          // handle rounding to next whole (e.g. 15/16 * 16)
-          if (num === den) return { whole: whole + 1, num: 0, den: 1 };
-
-          return { whole, num, den };
-        }
-
-        function formatQty(x) {
-          // show 0 as 0
-          if (!Number.isFinite(x)) return "";
-          if (x === 0) return "0";
-
-          const { whole, num, den } = toNiceFraction(x);
-
-          if (num === 0) return String(whole);
-          if (whole === 0) return `${num}/${den}`;
-          return `${whole} ${num}/${den}`;
-        }
-
-        function applyScale(mult) {
-          const ingredientRoot = document.getElementById("ingredientList");
-          if (!ingredientRoot) return;
-
-          const els = ingredientRoot.querySelectorAll('[data-role="qty"]');
-          els.forEach((el) => {
-            const rawBase = el.getAttribute("data-base");
-            const unit = el.getAttribute("data-unit") || "";
-            const base = rawBase ? Number(rawBase) : NaN;
-            if (!Number.isFinite(base)) return;
-
-            const scaled = base * mult;
-            el.textContent = `${formatQty(scaled)}${unit ? ` ${unit}` : ""}`;
-          });
+          if (printScaleNote) {
+            printScaleNote.textContent = mult === 1 ? "" : `Scaled \u00d7${formatQty(mult)}`;
+          }
         }
 
         if (printBtn) printBtn.addEventListener("click", () => window.print());
 
         if (scaleInput) {
-          scaleInput.addEventListener("input", () => {
-            const mult = Number(scaleInput.value || "1");
-            applyScale(Number.isFinite(mult) && mult > 0 ? mult : 1);
-          });
+          scaleInput.addEventListener("input", updateScaleUI);
 
-          applyScale(Number(scaleInput.value || "1") || 1);
+          // Stepper buttons: \u00b10.5 within [0.1, 99]
+          const step = (delta) => {
+            const next = Math.min(99, Math.max(0.1, Math.round((currentScale() + delta) * 10) / 10));
+            scaleInput.value = String(next);
+            updateScaleUI();
+          };
+          document.getElementById("scaleMinus")?.addEventListener("click", () => step(-0.5));
+          document.getElementById("scalePlus")?.addEventListener("click", () => step(0.5));
+
+          updateScaleUI();
         }
 
         // Shopping list functionality
         const addToShoppingListBtn = document.getElementById("addToShoppingListBtn");
         if (addToShoppingListBtn) {
-          // Extract ingredients data for shopping list
-          function getIngredientsForShoppingList() {
-            const ingredientElements = document.querySelectorAll('[data-role="qty"]');
-            const ingredients = [];
-
-            ingredientElements.forEach(el => {
-              const base = el.getAttribute("data-base");
-              const unit = el.getAttribute("data-unit") || "";
-              const nameEl = el.closest('.ingredient')?.querySelector('.ingredient-name');
-
-              if (nameEl && base !== null && base !== "") {
-                ingredients.push({
-                  name: nameEl.textContent.trim(),
-                  unit: unit,
-                  baseQuantity: Number(base)
-                });
-              }
-            });
-
-            return ingredients;
-          }
-
-          // Check if this recipe is already in shopping list
-          function isRecipeInShoppingList() {
-            if (!window.shoppingList) return false;
-            return window.shoppingList.isRecipeInList(addToShoppingListBtn.getAttribute('data-recipe-slug'));
-          }
-
-          // Update button state
-          function updateShoppingListButton() {
-            if (isRecipeInShoppingList()) {
-              addToShoppingListBtn.textContent = "🛒 Remove from Shopping List";
-              addToShoppingListBtn.classList.remove("primary");
-              addToShoppingListBtn.classList.add("secondary");
-            } else {
-              addToShoppingListBtn.textContent = "🛒 Add to Shopping List";
-              addToShoppingListBtn.classList.remove("secondary");
-              addToShoppingListBtn.classList.add("primary");
-            }
-          }
-
-          // Initialize button state
-          setTimeout(updateShoppingListButton, 100);
-
-          // Handle button click
-          addToShoppingListBtn.addEventListener("click", () => {
-            if (!window.shoppingList) {
-              alert("Shopping list not available. Please refresh the page and try again.");
-              return;
-            }
-
-            const recipeTitle = addToShoppingListBtn.getAttribute('data-recipe-title');
+          import('../../scripts/recipe-shopping-list.ts').then(module => {
             const recipeSlug = addToShoppingListBtn.getAttribute('data-recipe-slug');
-            const ingredients = getIngredientsForShoppingList();
+            const recipeTitle = addToShoppingListBtn.getAttribute('data-recipe-title');
 
-            if (ingredients.length === 0) {
-              alert("No ingredients found for this recipe.");
-              return;
-            }
-
-            const wasRemoved = window.shoppingList.addRecipe(recipeSlug, recipeTitle, ingredients);
-            updateShoppingListButton();
-
-            // Provide feedback
-            const message = wasRemoved
-              ? "Recipe removed from shopping list!"
-              : "Recipe added to shopping list!";
-
-            // Show brief notification
-            const notification = document.createElement("div");
-            notification.textContent = message;
-            notification.style.cssText = `
-              position: fixed;
-              top: 20px;
-              right: 20px;
-              background: var(--accent-2);
-              color: white;
-              padding: 1rem 1.5rem;
-              border-radius: 8px;
-              z-index: 1000;
-              animation: slideIn 0.3s ease;
-            `;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-              notification.style.animation = "slideOut 0.3s ease";
-              setTimeout(() => notification.remove(), 300);
-            }, 2000);
+            module.initializeShoppingListButton(addToShoppingListBtn, recipeSlug);
+            module.setupShoppingListButton(addToShoppingListBtn, recipeSlug, recipeTitle);
           });
         }
       }
@@ -453,6 +263,58 @@ const jsonLd = {
 <style>
   .recipe-header {
     margin-bottom: 1rem;
+  }
+
+  .recipe-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+  }
+
+  .recipe-description {
+    color: var(--text-2);
+    font-size: 1.05rem;
+    margin: 0.35rem 0 0;
+    max-width: 60ch;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.15rem;
+  }
+
+  .section-title :global(svg) {
+    color: var(--primary);
+  }
+
+  .button.icon-only {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .button :global(svg) {
+    flex-shrink: 0;
+  }
+
+  .fav-star {
+    border: 0;
+    background: transparent;
+    color: var(--border);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    vertical-align: middle;
+    padding: 0.1em 0.2em;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+
+  .fav-star[aria-pressed="true"] {
+    color: #ffd166;
+  }
+
+  .fav-star:hover {
+    transform: scale(1.15);
   }
 
   /* Recipe controls */
@@ -491,6 +353,40 @@ const jsonLd = {
   .recipe-controls .scale-suffix {
     color: var(--muted);
     font-weight: 700;
+  }
+
+  .recipe-controls .scale-btn {
+    border: 0;
+    background: var(--surface);
+    color: var(--text);
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .recipe-controls .scale-btn:hover {
+    background: var(--border);
+  }
+
+  .scaled-servings {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .cook-link {
+    background: var(--accent);
+  }
+
+  .cook-link:hover {
+    background: var(--primary-darken);
+  }
+
+  .print-scale-note {
+    display: none;
   }
 
   /* Image + meta */
@@ -535,7 +431,7 @@ const jsonLd = {
   }
 
   .fallback-icon {
-    font-size: 3rem;
+    color: var(--text-2);
     opacity: 0.6;
   }
 
@@ -546,61 +442,78 @@ const jsonLd = {
   }
 
   .recipe-meta {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
     align-content: start;
   }
 
-  .meta-item {
-    background: var(--surface);
-    padding: 1rem;
-    border-radius: 6px;
-    border-left: 3px solid var(--accent);
-  }
-
-  .meta-label {
+  .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--surface-2);
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
     font-size: 0.85rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: var(--text-2);
   }
 
-  .meta-value {
-    font-weight: bold;
-    color: var(--text);
-    font-size: 1.25rem;
+  .meta-chip :global(svg) {
+    color: var(--primary);
   }
 
   .recipe-content {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin: 2rem 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    gap: 0;
+    margin: 2rem 0 0;
+    border-top: 1px solid var(--border);
   }
 
   .recipe-column {
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    padding: 1.5rem 1.5rem 1.5rem 0;
+  }
+
+  /* Mealie's border-e-thin pattern: one quiet divider, no card boxes */
+  .recipe-column:first-child {
+    position: sticky;
+    top: calc(var(--nav-h) + 1rem);
+    align-self: start;
+    max-height: calc(100vh - var(--nav-h) - 2rem);
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    padding-right: 1.5rem;
+  }
+
+  .recipe-column:last-child {
+    padding-left: 1.5rem;
   }
 
   @media (max-width: 968px) {
     .recipe-content {
       grid-template-columns: 1fr;
     }
-  }
 
-  .recipe-section {
-    background: var(--surface);
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    .recipe-column:first-child {
+      position: static;
+      max-height: none;
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+      padding-right: 0;
+    }
+
+    .recipe-column:last-child {
+      padding-left: 0;
+    }
   }
 
   .recipe-section h2 {
-    color: var(--text);
-    border-bottom: 2px solid var(--accent);
+    color: var(--text-1);
     padding-bottom: 0.5rem;
     margin-top: 0;
     margin-bottom: 1rem;
@@ -632,12 +545,12 @@ const jsonLd = {
 
   /* Dark mode tag adjustments */
   html[data-theme="dark"] .tag {
-    color: #5db2ff;
-    border-color: #5db2ff;
+    color: var(--teal);
+    border-color: var(--teal);
   }
 
   html[data-theme="dark"] .tag:hover {
-    background: #5db2ff;
+    background: var(--primary);
     color: var(--surface);
   }
 
@@ -670,42 +583,17 @@ const jsonLd = {
 
   /* Dark mode source link adjustments */
   html[data-theme="dark"] .source a {
-    color: #5db2ff;
+    color: var(--teal);
   }
 
   html[data-theme="dark"] .source a:hover {
-    color: #7dc3ff;
+    color: var(--teal);
   }
 
   /* Back button styling */
-  .back-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--accent-2);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    border: 0;
-    cursor: pointer;
-    transition: background 0.2s;
-    margin-bottom: 1rem;
-  }
 
-  .back-button:hover {
-    background: #0770c9;
-    text-decoration: none;
-  }
 
-  html[data-theme="dark"] .back-button {
-    background: #5db2ff;
-  }
 
-  html[data-theme="dark"] .back-button:hover {
-    background: #7dc3ff;
-  }
 
   /* Recipe image responsive styling */
   .recipe-image-container {
@@ -716,10 +604,21 @@ const jsonLd = {
 
   @media print {
     .recipe-header .back-button,
-    .recipe-controls,
-    .tags,
+    .recipe-controls .button,
+    .recipe-controls .scale,
+    .scaled-servings,
+    .theme-toggle-container,
+    .cooklang-source,
     .source {
       display: none !important;
+    }
+
+    /* Keep the scale visible in print via the note (e.g. "Scaled \u00d72") */
+    .print-scale-note {
+      display: block;
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
     }
 
     body {
@@ -729,9 +628,16 @@ const jsonLd = {
       max-width: none;
     }
 
+    .recipe-content {
+      grid-template-columns: 1fr;
+    }
+
     .recipe-section {
-      box-shadow: none;
-      border: 1px solid #ccc;
+      break-inside: avoid;
+    }
+
+    .step {
+      break-inside: avoid;
     }
   }
 

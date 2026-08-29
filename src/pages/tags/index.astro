@@ -1,59 +1,13 @@
 ---
-import { readdir } from "fs/promises";
-import { resolve } from "path";
-import { readFileSync } from "fs";
-import { Recipe } from "@tmlmt/cooklang-parser";
-import * as yaml from "js-yaml";
 import RecipeCard from "../../components/RecipeCard.astro";
-import ThemeToggle from "../../components/ThemeToggle.astro";
 import ViewControls from "../../components/ViewControls.astro";
 import Layout from "../../layouts/Layout.astro";
+import { getAllRecipes } from "../../lib/recipes";
 
-const recipesDir = resolve("recipes");
-const files = await readdir(recipesDir);
-const cookFiles = files.filter((f) => f.endsWith(".cook"));
+// Single shared loading pipeline (recursive discovery, frontmatter merge)
+const recipes = getAllRecipes();
 
-const recipes = cookFiles.map((file) => {
-  const slug = file.replace(".cook", "");
-  const filePath = resolve(recipesDir, file);
-  const content = readFileSync(filePath, "utf-8");
-
-  // Extract YAML frontmatter
-  let frontmatter = {};
-  let recipeContent = content;
-
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (frontmatterMatch) {
-    try {
-      frontmatter = yaml.load(frontmatterMatch[1]) || {};
-      recipeContent = frontmatterMatch[2];
-    } catch (e) {
-      console.error(`Error parsing YAML in ${file}:`, e);
-    }
-  }
-
-  let parsed;
-  try {
-    parsed = new Recipe(recipeContent);
-    // Merge frontmatter with parsed metadata - frontmatter takes priority
-    parsed.metadata = { ...parsed.metadata, ...frontmatter };
-
-  } catch (error) {
-    console.error(`Error parsing ${file}:`, error);
-    parsed = { metadata: frontmatter, ingredients: [], sections: [] };
-  }
-
-  return { slug, parsed };
-});
-
-// Sort by title
-recipes.sort((a, b) => {
-  const titleA = a.parsed.metadata.title || a.slug;
-  const titleB = b.parsed.metadata.title || b.slug;
-  return titleA.localeCompare(titleB);
-});
-
-// Get all unique tags
+// Get all unique tags (with slug mapping for URLs)
 const allTags = new Set<string>();
 recipes.forEach((recipe) => {
   const tags = recipe.parsed.metadata.tags || [];
@@ -63,15 +17,12 @@ const sortedTags = Array.from(allTags).sort();
 ---
 
 <Layout title="Recipe Collection" description={`${recipes.length} recipes available`}>
-  <Fragment slot="theme-toggle">
-    <ThemeToggle />
-  </Fragment>
 
   <div class="container">
-    <div class="page-header">
-      <a href={import.meta.env.BASE_URL} class="back-button">← Back to recipes</a>
-      <h1>🍳 Recipe Collection</h1>
-    </div>
+    <header class="page-header">
+      <h1>Tags</h1>
+      <p class="page-subtitle">{recipes.length} recipe{recipes.length !== 1 ? "s" : ""} · pick a tag to filter</p>
+    </header>
     <p class="subtitle">{recipes.length} recipes available</p>
 
     <div class="controls">
@@ -109,42 +60,8 @@ const sortedTags = Array.from(allTags).sort();
   </div>
 
   <Fragment slot="scripts">
-    <script is:inline>
-      // Initialize view controls after DOM is ready
-      (function() {
-        const viewButtons = document.querySelectorAll('[data-view]');
-        const recipeGrid = document.getElementById('recipeGrid');
-
-        if (!viewButtons.length || !recipeGrid) return;
-
-        function setView(viewType) {
-          // Update button states
-          viewButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.view === viewType);
-          });
-
-          // Update grid class
-          recipeGrid.className = recipeGrid.className.replace(/view-\w+/g, '');
-          recipeGrid.classList.add(`view-${viewType}`);
-
-          // Save preference
-          localStorage.setItem('recipe-view-preference', viewType);
-        }
-
-        // Load saved preference
-        const savedView = localStorage.getItem('recipe-view-preference') || 'grid';
-        setView(savedView);
-
-        // Handle button clicks
-        viewButtons.forEach(button => {
-          button.addEventListener('click', () => {
-            setView(button.dataset.view);
-          });
-        });
-      })();
-    </script>
-
     <script>
+      // View controls come from ViewControls.astro (shared bundled script).
       const searchInput = document.getElementById('search');
       const recipeGrid = document.getElementById('recipeGrid');
       const noResults = document.getElementById('noResults');
@@ -206,6 +123,17 @@ const sortedTags = Array.from(allTags).sort();
     max-width: 100%;
   }
 
+  .page-header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .page-subtitle {
+    color: var(--text-2);
+    margin: 0.15rem 0 0;
+  }
+
   .page-header {
     display: flex;
     justify-content: space-between;
@@ -215,33 +143,9 @@ const sortedTags = Array.from(allTags).sort();
     gap: 1rem;
   }
 
-  .back-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--accent-2);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    border: 0;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
 
-  .back-button:hover {
-    background: #0770c9;
-    text-decoration: none;
-  }
 
-  html[data-theme="dark"] .back-button {
-    background: #5db2ff;
-  }
 
-  html[data-theme="dark"] .back-button:hover {
-    background: #7dc3ff;
-  }
 
   .subtitle {
     color: var(--muted);
@@ -335,18 +239,18 @@ const sortedTags = Array.from(allTags).sort();
 
   /* Dark mode tag button adjustments */
   html[data-theme="dark"] .tag-button {
-    color: #5db2ff;
-    border-color: #5db2ff;
+    color: var(--teal);
+    border-color: var(--teal);
   }
 
   html[data-theme="dark"] .tag-button:hover {
-    background: #5db2ff;
+    background: var(--primary);
     color: var(--surface);
   }
 
   html[data-theme="dark"] .tag-button.active {
-    background: #5db2ff;
-    border-color: #5db2ff;
+    background: var(--primary);
+    border-color: var(--teal);
   }
 
   .recipe-grid {

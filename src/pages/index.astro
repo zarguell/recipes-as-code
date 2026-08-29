@@ -1,89 +1,101 @@
 ---
-import { readdir } from "fs/promises";
-import { resolve } from "path";
-import { readFileSync } from "fs";
-import { Recipe } from "@tmlmt/cooklang-parser";
-import * as yaml from "js-yaml";
 import RecipeCard from "../components/RecipeCard.astro";
-import ThemeToggle from "../components/ThemeToggle.astro";
 import ViewControls from "../components/ViewControls.astro";
 import Layout from "../layouts/Layout.astro";
+import { getAllRecipes } from "../lib/recipes";
+import { parseTimeToMinutes } from "../lib/time";
+import { loadCollections } from "../lib/collections";
 
-const recipesDir = resolve("recipes");
-const files = await readdir(recipesDir);
-const cookFiles = files.filter((f) => f.endsWith(".cook"));
+// Single shared loading pipeline (recursive discovery, frontmatter merge)
+const recipes = getAllRecipes();
+const collections = loadCollections();
+const base = import.meta.env.BASE_URL;
 
-const recipes = cookFiles.map((file) => {
-  const slug = file.replace(".cook", "");
-  const filePath = resolve(recipesDir, file);
-  const content = readFileSync(filePath, "utf-8");
-
-  // Extract YAML frontmatter
-  let frontmatter = {};
-  let recipeContent = content;
-
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (frontmatterMatch) {
-    try {
-      frontmatter = yaml.load(frontmatterMatch[1]) || {};
-      recipeContent = frontmatterMatch[2];
-    } catch (e) {
-      console.error(`Error parsing YAML in ${file}:`, e);
-    }
-  }
-
-  let parsed;
-  try {
-    parsed = new Recipe(recipeContent);
-    // Merge frontmatter with parsed metadata - frontmatter takes priority
-    parsed.metadata = { ...parsed.metadata, ...frontmatter };
-  } catch (error) {
-    console.error(`Error parsing ${file}:`, error);
-    parsed = { metadata: frontmatter, ingredients: [], sections: [] };
-  }
-
-  return { slug, file, parsed };
-});
-
-// Sort by title
-recipes.sort((a, b) => {
-  const titleA = a.parsed.metadata.title || a.slug;
-  const titleB = b.parsed.metadata.title || b.slug;
-  return titleA.localeCompare(titleB);
-});
+/**
+ * Client-side recipe directory: lets the recents strip and favorites
+ * filter resolve slugs without extra requests. (No ingredient data —
+ * the planner embeds its own heavier directory.)
+ */
+const directory = Object.fromEntries(
+  recipes.map((recipe) => {
+    const meta = recipe.parsed.metadata ?? {};
+    const minutes =
+      parseTimeToMinutes(meta["total-time"]) ??
+      (parseTimeToMinutes(meta["prep-time"]) !== null || parseTimeToMinutes(meta["cook-time"]) !== null
+        ? (parseTimeToMinutes(meta["prep-time"]) ?? 0) + (parseTimeToMinutes(meta["cook-time"]) ?? 0)
+        : null);
+    return [
+      recipe.slug,
+      {
+        title: recipe.title,
+        url: `${base}recipes/${recipe.slug}/`,
+        minutes,
+        image: meta.image?.replace(/^["']|["']$/g, "") || null,
+      },
+    ];
+  })
+);
 ---
 
 <Layout title="My Recipes">
-  <Fragment slot="theme-toggle">
-    <ThemeToggle />
-  </Fragment>
 
   <header class="page-header">
-    <h1>🍳 My Recipes</h1>
-    <div class="header-controls">
-      <div class="header-buttons">
-        <a href={`${import.meta.env.BASE_URL}shopping-list/`} class="button primary">
-          🛒 Shopping List
-        </a>
-        <a href={`${import.meta.env.BASE_URL}tags/`} class="button secondary">
-          🏷️ Browse Tags
-        </a>
-        <a href={`${import.meta.env.BASE_URL}rss.xml`} class="button" target="_blank">
-          📡 RSS Feed
-        </a>
-      </div>
-    </div>
+    <h1>Recipes</h1>
+    <p class="page-subtitle">{recipes.length} recipe{recipes.length !== 1 ? "s" : ""} in your cookbook</p>
   </header>
 
-  <input
-    type="search"
-    class="search-box"
-    id="searchBox"
-    placeholder="Search recipes..."
-    autocomplete="off"
-  />
+  <section id="recentsSection" class="recents" hidden>
+    <h2 class="section-label">Recently viewed</h2>
+    <div id="recentsRow" class="recents-row"></div>
+  </section>
 
-  <ViewControls />
+  <div class="search-row" id="searchBox-anchor">
+    <input
+      type="search"
+      class="search-box"
+      id="searchBox"
+      placeholder="Search recipes, ingredients, steps..."
+      autocomplete="off"
+      aria-label="Search recipes"
+    />
+    <button type="button" class="chip" id="favoritesChip" aria-pressed="false">
+      <span aria-hidden="true">★</span> Favorites
+    </button>
+    <label class="sort-label">
+      <span aria-hidden="true">Sort</span>
+      <select id="sortSelect" aria-label="Sort recipes">
+        <option value="title">A–Z</option>
+        <option value="newest">Newest</option>
+        <option value="fastest">Fastest</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="searchResults" class="search-results" hidden>
+    <h2 class="section-label">Search results</h2>
+    <ul class="search-list" id="searchList"></ul>
+    <p class="search-empty" id="searchEmpty" hidden>No recipes match your search.</p>
+  </div>
+
+  {collections.length > 0 && (
+    <section class="collections-row">
+      <h2 class="section-label">Collections</h2>
+      <div class="collection-links">
+        {collections.map((collection) => (
+          <a href={`${base}collections/${collection.slug}/`} class="collection-card">
+            <span class="collection-name">{collection.name}</span>
+            {collection.description && (
+              <span class="collection-desc">{collection.description}</span>
+            )}
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <div class="grid-header">
+    <ViewControls />
+  </div>
 
   <div class="recipe-grid view-grid" id="recipeGrid">
     {recipes.map((recipe) => <RecipeCard recipe={recipe} />)}
@@ -93,101 +105,356 @@ recipes.sort((a, b) => {
     No recipes found. Try a different search.
   </div>
 
-  <Fragment slot="scripts">
-    <script is:inline>
-      document.addEventListener('DOMContentLoaded', function() {
-        const searchBox = document.getElementById('searchBox');
-        const noResults = document.getElementById('noResults');
-        const recipeCards = document.querySelectorAll('.recipe-card');
+  <script type="application/json" id="recipeDirectory" set:html={JSON.stringify(directory)} />
 
-        if (!searchBox || !noResults || recipeCards.length === 0) {
+  <Fragment slot="scripts">
+    <script>
+      // Home page interactivity: full-text search (Pagefind, with a DOM
+      // filter fallback for dev mode), favorites, recents, sorting.
+      import { getFavorites, toggleFavorite, isFavorite, getRecents } from '../scripts/library-store';
+
+      const directory: Record<string, any> = JSON.parse(
+        document.getElementById('recipeDirectory')?.textContent ?? '{}'
+      );
+
+      const searchBox = document.getElementById('searchBox') as HTMLInputElement | null;
+      const noResults = document.getElementById('noResults');
+      const grid = document.getElementById('recipeGrid');
+      const searchResults = document.getElementById('searchResults');
+      const searchList = document.getElementById('searchList');
+      const searchEmpty = document.getElementById('searchEmpty');
+      const favoritesChip = document.getElementById('favoritesChip');
+
+      // --- Favorites ---
+      let favoritesOnly = false;
+
+      function syncFavoriteStars() {
+        document.querySelectorAll<HTMLElement>('[data-fav]').forEach((btn) => {
+          const slug = btn.dataset.favSlug ?? '';
+          const active = isFavorite(slug);
+          btn.setAttribute('aria-pressed', String(active));
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('[data-fav]');
+        if (!btn) return;
+        const slug = (btn as HTMLElement).dataset.favSlug ?? '';
+        const nowFavorite = toggleFavorite(slug);
+        (btn as HTMLElement).setAttribute('aria-pressed', String(nowFavorite));
+        applyFilters();
+      });
+
+      favoritesChip?.addEventListener('click', () => {
+        favoritesOnly = !favoritesOnly;
+        favoritesChip.setAttribute('aria-pressed', String(favoritesOnly));
+        applyFilters();
+      });
+
+      function applyFilters() {
+        // While a search is active the results panel drives the UI.
+        if (searchBox && searchBox.value.trim() !== '') return;
+
+        const favorites = new Set(getFavorites());
+        let visible = 0;
+        document.querySelectorAll<HTMLElement>('.recipe-card-wrap').forEach((wrap) => {
+          const card = wrap.querySelector('.recipe-card') as HTMLElement | null;
+          if (!card) return;
+          const slug = card.dataset.slug ?? '';
+          const show = !favoritesOnly || favorites.has(slug);
+          wrap.classList.toggle('hidden', !show);
+          if (show) visible += 1;
+        });
+        noResults?.classList.toggle('show', visible === 0);
+      }
+
+      // --- Recently viewed ---
+      const recentsSection = document.getElementById('recentsSection');
+      const recentsRow = document.getElementById('recentsRow');
+      if (recentsSection && recentsRow) {
+        const recents = getRecents().filter((slug) => directory[slug]);
+        if (recents.length > 0) {
+          recentsSection.hidden = false;
+          recents.slice(0, 6).forEach((slug) => {
+            const entry = directory[slug];
+            const a = document.createElement('a');
+            a.href = entry.url;
+            a.className = 'recent-pill';
+            a.textContent = entry.title;
+            recentsRow.appendChild(a);
+          });
+        }
+      }
+
+      // --- Sorting (A-Z default = build order) ---
+      function sortCards(mode: string) {
+        if (!grid) return;
+        const cards = Array.from(grid.querySelectorAll<HTMLElement>('.recipe-card'));
+        const byText = (a: HTMLElement, b: HTMLElement, attr: string) =>
+          String(a.dataset[attr] || '').localeCompare(String(b.dataset[attr] || ''));
+        const byNumber = (a: HTMLElement, b: HTMLElement, attr: string) => {
+          const av = parseFloat(a.dataset[attr]!);
+          const bv = parseFloat(b.dataset[attr]!);
+          const aMissing = !Number.isFinite(av);
+          const bMissing = !Number.isFinite(bv);
+          if (aMissing && bMissing) return 0;
+          if (aMissing) return 1;
+          if (bMissing) return -1;
+          return av - bv;
+        };
+
+        // Sort wraps (the grid children), keeping each star button with its card.
+        const wraps = cards.map((c) => c.closest('.recipe-card-wrap') as HTMLElement);
+        const sortedWraps = wraps.slice();
+        if (mode === 'fastest') sortedWraps.sort((a, b) => byNumber(a.querySelector('.recipe-card')!, b.querySelector('.recipe-card')!, 'timeMinutes'));
+        else if (mode === 'newest') sortedWraps.sort((a, b) => byText(b.querySelector('.recipe-card')!, a.querySelector('.recipe-card')!, 'date'));
+        else if (mode === 'title') sortedWraps.sort((a, b) => byText(a.querySelector('.recipe-card')!, b.querySelector('.recipe-card')!, 'title'));
+
+        sortedWraps.forEach((wrap) => grid.appendChild(wrap));
+      }
+
+      const sortSelect = document.getElementById('sortSelect') as HTMLSelectElement | null;
+      if (sortSelect && grid) {
+        const savedSort = localStorage.getItem('recipe-sort-preference');
+        if (savedSort) sortSelect.value = savedSort;
+        sortCards(sortSelect.value);
+        sortSelect.addEventListener('change', () => {
+          localStorage.setItem('recipe-sort-preference', sortSelect.value);
+          sortCards(sortSelect.value);
+        });
+      }
+
+      // --- Search: Pagefind when available, DOM filter fallback ---
+      let pagefind: any = null;
+
+      async function loadPagefind() {
+        if (pagefind) return pagefind;
+        try {
+          pagefind = await import(/* @vite-ignore */ `${'/' + 'pagefind/pagefind.js'}`);
+          return pagefind;
+        } catch {
+          return null; // dev mode: pagefind assets only exist after build
+        }
+      }
+
+      /** Keep only text and <mark> highlights from a Pagefind excerpt. */
+      function sanitizeExcerpt(excerpt: string): DocumentFragment {
+        const template = document.createElement('template');
+        template.innerHTML = excerpt; // inert until adopted — safe to parse
+        const output = document.createDocumentFragment();
+        const walk = (node: Node) => {
+          node.childNodes.forEach((child) => {
+            if (child.nodeType === Node.TEXT_NODE) {
+              output.appendChild(document.createTextNode(child.textContent ?? ''));
+            } else if (child.nodeType === Node.ELEMENT_NODE && (child as Element).tagName === 'MARK') {
+              const mark = document.createElement('mark');
+              mark.textContent = child.textContent ?? '';
+              output.appendChild(mark);
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+              walk(child);
+            }
+          });
+        };
+        walk(template.content);
+        return output;
+      }
+
+      function showResults(results: { url: string; title: string; excerpt: DocumentFragment }[]) {
+        if (!searchResults || !searchList || !grid) return;
+        searchList.textContent = '';
+        results.forEach((result) => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = result.url;
+          const title = document.createElement('span');
+          title.className = 'result-title';
+          title.textContent = result.title;
+          const snippet = document.createElement('span');
+          snippet.className = 'result-excerpt';
+          snippet.appendChild(result.excerpt);
+          a.append(title, snippet);
+          li.appendChild(a);
+          searchList.appendChild(li);
+        });
+        searchResults.hidden = false;
+        grid.style.display = 'none';
+        const searchHasHits = results.length > 0;
+        searchEmpty && (searchEmpty.hidden = searchHasHits);
+        searchList.style.display = searchHasHits ? '' : 'none';
+        document.querySelector('.grid-header')?.classList.add('hidden');
+        noResults?.classList.remove('show');
+      }
+
+      function restoreGrid() {
+        if (!searchResults || !grid) return;
+        searchResults.hidden = true;
+        grid.style.display = '';
+        document.querySelector('.grid-header')?.classList.remove('hidden');
+        applyFilters();
+      }
+
+      let searchSeq = 0;
+
+      async function handleSearch(query: string) {
+        const trimmed = query.trim();
+        if (trimmed === '') {
+          restoreGrid();
           return;
         }
 
-        searchBox.addEventListener('input', function(e) {
-          const search = e.target.value.toLowerCase().trim();
-          let visibleCount = 0;
-
-          recipeCards.forEach(function(card) {
-            if (search === '') {
-              card.classList.remove('hidden');
-              visibleCount++;
-              return;
-            }
-
-            const title = (card.dataset.title || '').toLowerCase();
-            const description = (card.dataset.description || '').toLowerCase();
-            const tags = (card.dataset.tags || '').toLowerCase();
-
-            const matches =
-              title.includes(search) ||
-              description.includes(search) ||
-              tags.includes(search);
-
-            if (matches) {
-              card.classList.remove('hidden');
-              visibleCount++;
-            } else {
-              card.classList.add('hidden');
-            }
-          });
-
-          if (visibleCount === 0) {
-            noResults.classList.add('show');
-          } else {
-            noResults.classList.remove('show');
-          }
-        });
-      });
-
-      // Initialize view controls after DOM is ready
-      (function() {
-        const viewButtons = document.querySelectorAll('[data-view]');
-        const recipeGrid = document.getElementById('recipeGrid');
-
-        if (!viewButtons.length || !recipeGrid) return;
-
-        function setView(viewType) {
-          // Update button states
-          viewButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.view === viewType);
-          });
-
-          // Update grid class
-          recipeGrid.className = recipeGrid.className.replace(/view-\w+/g, '');
-          recipeGrid.classList.add(`view-${viewType}`);
-
-          // Save preference
-          localStorage.setItem('recipe-view-preference', viewType);
+        const engine = await loadPagefind();
+        if (!engine) {
+          // Fallback: title/description/tags DOM filter
+          if (searchResults) searchResults.hidden = true;
+          if (grid) grid.style.display = '';
+          fallbackFilter(trimmed);
+          return;
         }
 
-        // Load saved preference
-        const savedView = localStorage.getItem('recipe-view-preference') || 'grid';
-        setView(savedView);
+        const seq = ++searchSeq;
+        const search = await engine.search(trimmed);
+        if (seq !== searchSeq) return; // stale
 
-        // Handle button clicks
-        viewButtons.forEach(button => {
-          button.addEventListener('click', () => {
-            setView(button.dataset.view);
+        const results: { url: string; title: string; excerpt: DocumentFragment }[] = [];
+        const top = search.results.slice(0, 12);
+        await Promise.all(top.map(async (result: any) => {
+          const data = await result.data();
+          results.push({
+            url: data.url,
+            title: data.meta?.title || data.url,
+            excerpt: sanitizeExcerpt(data.excerpt ?? ''),
           });
+        }));
+        showResults(results);
+      }
+
+      function fallbackFilter(search: string) {
+        let visibleCount = 0;
+        const lowered = search.toLowerCase();
+        document.querySelectorAll<HTMLElement>('.recipe-card').forEach((card) => {
+          const title = (card.dataset.title || '').toLowerCase();
+          const description = (card.dataset.description || '').toLowerCase();
+          const tags = (card.dataset.tags || '').toLowerCase();
+          const matches = title.includes(lowered) || description.includes(lowered) || tags.includes(lowered);
+          card.closest('.recipe-card-wrap')?.classList.toggle('hidden', !matches);
+          if (matches) visibleCount += 1;
         });
-      })();
+        noResults?.classList.toggle('show', visibleCount === 0);
+      }
+
+      let debounce: ReturnType<typeof setTimeout>;
+      searchBox?.addEventListener('input', () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => handleSearch(searchBox.value), 120);
+      });
+
+      // --- init ---
+      syncFavoriteStars();
+      applyFilters();
+
     </script>
   </Fragment>
 </Layout>
 
 <style>
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 0.15rem;
+  }
+
+  .page-subtitle {
+    color: var(--text-2);
+    margin: 0;
+  }
+
+  .section-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+  }
+
+  .recents {
+    margin-bottom: 1.5rem;
+  }
+
+  .recents-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .recent-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .recent-pill:hover {
+    border-color: var(--accent-2);
+    text-decoration: none;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+
+  .chip {
+    border: 2px solid var(--accent);
+    background: var(--surface);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .chip[aria-pressed="true"] {
+    background: var(--accent);
+    color: white;
+  }
+
+  .sort-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .sort-label select {
+    padding: 0.6rem 0.75rem;
+    border: 2px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--input-text);
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
 
   .search-box {
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     padding: 0.75rem 1rem;
     border: 2px solid var(--input-border);
     background: var(--input-bg);
     color: var(--input-text);
     border-radius: 8px;
     font-size: 1rem;
-    margin-bottom: 2rem;
     transition: border-color 0.2s, background-color 0.2s;
   }
 
@@ -200,7 +467,103 @@ recipes.sort((a, b) => {
     color: var(--muted);
   }
 
-  :global(.recipe-card.hidden) {
+  .search-results {
+    margin-bottom: 2rem;
+  }
+
+  .search-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .search-list a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .search-list a:hover {
+    border-color: var(--accent-2);
+  }
+
+  .result-title {
+    font-weight: 700;
+  }
+
+  .result-excerpt {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .result-excerpt :global(mark) {
+    background: color-mix(in oklab, var(--accent) 30%, transparent);
+    color: inherit;
+    padding: 0 0.1em;
+    border-radius: 3px;
+  }
+
+  .search-empty {
+    color: var(--muted);
+  }
+
+  .collections-row {
+    margin-bottom: 2rem;
+  }
+
+  .collection-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .collection-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1.2rem;
+    text-decoration: none;
+    color: var(--text);
+    box-shadow: var(--shadow-card, 0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .collection-card:hover {
+    border-color: var(--accent-2);
+    text-decoration: none;
+    transform: translateY(-2px);
+  }
+
+  .collection-name {
+    font-weight: 700;
+  }
+
+  .collection-desc {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .grid-header {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .grid-header.hidden {
+    display: none;
+  }
+
+  :global(.recipe-card-wrap.hidden) {
     display: none !important;
   }
 

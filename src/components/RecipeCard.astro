@@ -1,152 +1,225 @@
 ---
+import Icon from './Icon.astro';
+import { parseTimeToMinutes } from '../lib/time';
+
 const { recipe } = Astro.props;
 
 const title = recipe.parsed.metadata.title || recipe.slug;
 const description = recipe.parsed.metadata.description || "";
-const tags = recipe.parsed.metadata.tags || [];
+const tags: string[] = (recipe.parsed.metadata.tags || []).slice(0, 3);
 const imageUrl = recipe.parsed.metadata.image?.replace(/^["']|["']$/g, '') || null;
 
+// Numeric time for the meta chip + "fastest" sorting: total, else prep + cook.
+const meta = recipe.parsed.metadata;
+const totalMinutes =
+  parseTimeToMinutes(meta["total-time"]) ??
+  (parseTimeToMinutes(meta["prep-time"]) !== null || parseTimeToMinutes(meta["cook-time"]) !== null
+    ? (parseTimeToMinutes(meta["prep-time"]) ?? 0) + (parseTimeToMinutes(meta["cook-time"]) ?? 0)
+    : null);
+const timeLabel = meta["total-time"] || (totalMinutes !== null ? `${totalMinutes} min` : null);
 
-// Get time info
-const prepTime = recipe.parsed.metadata["prep-time"];
-const cookTime = recipe.parsed.metadata["cook-time"];
-const totalTime = recipe.parsed.metadata["total-time"];
-const servings = recipe.parsed.metadata.servings;
-
+// Build-time date (file mtime or frontmatter date) for "newest" sorting.
+const dateValue = meta.date ? new Date(meta.date).toISOString() : recipe.modifiedTime;
+const servings = meta.servings;
 ---
 
-<a 
-  href={`${import.meta.env.BASE_URL}recipes/${recipe.slug}/`} 
-  class="recipe-card"
-  data-title={title.toLowerCase()}
-  data-description={description.toLowerCase()}
-  data-tags={tags.join(',').toLowerCase()}
->
-  <div class="recipe-image">
-    {imageUrl ? (
-      <img
-        src={imageUrl}
-        alt={title}
-        loading="lazy"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
-      />
-    ) : null}
-    <div class="image-fallback" style={imageUrl ? "display: none;" : "display: flex;"}>
-      <span class="fallback-icon">🍳</span>
-      <span class="fallback-text">No Image</span>
+<div class="recipe-card-wrap">
+  <a
+    href={`${import.meta.env.BASE_URL}recipes/${recipe.slug}/`}
+    class="recipe-card"
+    data-title={title.toLowerCase()}
+    data-description={description.toLowerCase()}
+    data-tags={tags.join(',').toLowerCase()}
+    data-time-minutes={totalMinutes ?? ""}
+    data-date={dateValue}
+    data-slug={recipe.slug}
+  >
+    <div class="recipe-image">
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+        />
+      ) : null}
+      <div class="image-fallback" style={imageUrl ? "display: none;" : "display: flex;"} aria-hidden="true">
+        <Icon name="recipes" size={40} />
+      </div>
     </div>
-  </div>
-  <div class="recipe-info">
-    <h3>{title}</h3>
-    {description && (
-      <p class="description">{description}</p>
-    )}
-    <div class="recipe-stats">
-      {servings && (
-        <span class="stat">👥 {servings}</span>
-      )}
-      {totalTime && (
-        <span class="stat">⏱️ {totalTime}</span>
-      )}
-      {!totalTime && (prepTime || cookTime) && (
-        <>
-          {prepTime && (
-            <span class="stat">🔪 {prepTime}</span>
-          )}
-          {cookTime && (
-            <span class="stat">🔥 {cookTime}</span>
-          )}
-        </>
+    <div class="recipe-info">
+      <h3 class="recipe-title">{title}</h3>
+      <div class="recipe-meta-row">
+        {timeLabel && (
+          <span class="meta-chip">
+            <Icon name="clock" size={14} />
+            {timeLabel}
+          </span>
+        )}
+        {servings && (
+          <span class="meta-chip">
+            <Icon name="recipes" size={14} />
+            {servings}
+          </span>
+        )}
+      </div>
+      {tags.length > 0 && (
+        <div class="recipe-tags">
+          {tags.map((tag) => (
+            <span class="tag-chip">#{tag}</span>
+          ))}
+        </div>
       )}
     </div>
-  </div>
-</a>
+  </a>
+  <button
+    type="button"
+    class="fav-btn"
+    data-fav
+    data-fav-slug={recipe.slug}
+    aria-pressed="false"
+    aria-label={`Add ${title} to favorites`}
+    title="Favorite"
+  >★</button>
+</div>
 
 <style>
+  .recipe-card-wrap {
+    position: relative;
+  }
+
   .recipe-card {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     background: var(--surface);
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
     text-decoration: none;
     color: inherit;
   }
 
   .recipe-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--border);
+    color: inherit;
   }
 
   .recipe-image {
     width: 100%;
-    height: 200px;
+    height: 170px;
     overflow: hidden;
+    background: var(--surface-2);
   }
 
   .recipe-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+  }
+
+  .image-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--text-2);
+    opacity: 0.6;
   }
 
   .recipe-info {
-    padding: 1.5rem;
+    padding: 0.9rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
   }
 
-  h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
-  }
-
-  .description {
-    font-size: 0.9rem;
-    color: var(--muted);
-    margin: 0.5rem 0 1rem 0;
+  .recipe-title {
+    margin: 0;
+    font-size: 1.12rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-1);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    min-height: 2.6em;
   }
 
-  .recipe-stats {
+  .recipe-meta-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    font-size: 0.85rem;
-    color: var(--muted);
+    gap: 0.4rem;
   }
 
-  .stat {
+  .meta-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.3rem;
+    background: var(--surface-2);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-2);
   }
 
-  /* Image fallback styling */
-  .image-fallback {
+  .meta-chip :global(svg) {
+    color: var(--primary);
+  }
+
+  .recipe-tags {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 200px;
-    background: var(--surface);
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: auto;
+    padding-top: 0.25rem;
+  }
+
+  .tag-chip {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--teal);
+    background: transparent;
     border: 1px solid var(--border);
-    border-radius: 4px;
-    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
   }
 
-  .fallback-icon {
-    font-size: 2rem;
-    opacity: 0.6;
+  .fav-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-content: center;
+    transition: transform 0.15s ease, color 0.15s ease, background 0.15s ease;
   }
 
-  .fallback-text {
-    font-size: 0.9rem;
-    color: var(--muted);
-    font-family: system-ui, sans-serif;
+  .fav-btn:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.6);
   }
 
+  .fav-btn[aria-pressed="true"] {
+    color: #ffd166;
+  }
 </style>

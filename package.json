@@ -1,14 +1,17 @@
 {
-  "name": "recipe-site",
+  "name": "recipes-as-code",
   "version": "1.0.0",
-  "description": "A beautiful static recipe site built with Astro and CookLang",
+  "description": "A cookbook generated from Cooklang recipe files — static site built with Astro",
   "type": "module",
   "scripts": {
     "dev": "astro dev",
     "copy-recipes": "cp -r recipes public/",
     "prebuild": "npm run copy-recipes",
     "build": "astro build",
+    "postbuild": "pagefind --site dist",
     "preview": "astro preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "astro": "astro"
   },
   "keywords": [
@@ -17,10 +20,12 @@
     "recipes",
     "static-site"
   ],
-  "author": "",
   "license": "MIT",
   "devDependencies": {
-    "astro": "^7.0.0"
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^7.0.0",
+    "pagefind": "^1.5.2",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.0",
@@ -31,7 +36,7 @@
   },
   "overrides": {
     "@vite-pwa/astro": {
-      "astro": "^1.6.0 || ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
+      "astro": "$astro"
     }
   }
 }

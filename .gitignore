@@ -24,3 +24,6 @@ pnpm-debug.log*
 .idea/
 
 .shopping_list.txt
+
+.claude
+public/recipes/

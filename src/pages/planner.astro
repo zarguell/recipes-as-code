@@ -1,0 +1,377 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getAllRecipes, ingredientLines } from "../lib/recipes";
+
+const recipes = getAllRecipes();
+const base = import.meta.env.BASE_URL;
+
+/**
+ * Heavier directory for the planner: includes ingredient lines so
+ * "add week to shopping list" works entirely client-side.
+ */
+const directory = Object.fromEntries(
+  recipes.map((recipe) => [
+    recipe.slug,
+    {
+      title: recipe.title,
+      url: `${base}recipes/${recipe.slug}/`,
+      ingredients: ingredientLines(recipe.parsed),
+    },
+  ])
+);
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+---
+
+<Layout title="Meal Planner" description="Plan your week of meals">
+
+  <header class="page-header">
+    <div class="header-top">
+      <h1>Meal Planner</h1>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="button primary" id="planToListBtn">
+        Add week to shopping list
+      </button>
+      <button type="button" class="button secondary" id="clearPlanBtn">Clear week</button>
+    </div>
+  </header>
+
+  <p class="planner-hint">
+    Plans live in this browser only — no account, no server. Add recipes to each day,
+    then send the whole week to your shopping list.
+  </p>
+
+  <div id="toast" class="toast" role="status" hidden>
+    <span id="toastMessage"></span>
+    <button type="button" id="toastAction" class="toast-action" hidden></button>
+  </div>
+
+  <div class="planner-grid">
+    {DAYS.map((day) => (
+      <section class="day-card" data-day={day}>
+        <h2>{day}</h2>
+        <ul class="day-recipes" data-day-list></ul>
+        <label class="day-add">
+          <span class="day-add-label">Add recipe</span>
+          <select data-day-select aria-label={`Add recipe to ${day}`}>
+            <option value="">Choose…</option>
+            {recipes.map((recipe) => (
+              <option value={recipe.slug}>{recipe.title}</option>
+            ))}
+          </select>
+        </label>
+      </section>
+    ))}
+  </div>
+
+  <script type="application/json" id="plannerDirectory" set:html={JSON.stringify(directory)} />
+
+  <Fragment slot="scripts">
+    <script>
+      import { shoppingList } from '../scripts/shopping-list-store';
+
+      const directory: Record<string, any> = JSON.parse(
+        document.getElementById('plannerDirectory')?.textContent ?? '{}'
+      );
+
+      const STORAGE_KEY = 'meal-plan';
+      interface PlanMap { [day: string]: string[] }
+
+      function loadPlan(): PlanMap {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return {};
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
+          const plan: PlanMap = {};
+          for (const [day, slugs] of Object.entries(data)) {
+            if (Array.isArray(slugs)) plan[day] = slugs.filter((s): s is string => typeof s === 'string');
+          }
+          return plan;
+        } catch {
+          return {};
+        }
+      }
+
+      function savePlan(plan: PlanMap) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(plan));
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const plan: PlanMap = loadPlan();
+      const dayCards = document.querySelectorAll<HTMLElement>('[data-day]');
+
+      function renderDay(dayCard: HTMLElement) {
+        const day = dayCard.dataset.day!;
+        const list = dayCard.querySelector('[data-day-list]')!;
+        list.textContent = '';
+
+        (plan[day] ?? []).forEach((slug, index) => {
+          const entry = directory[slug];
+          if (!entry) return;
+          const li = document.createElement('li');
+          li.className = 'day-recipe';
+
+          const a = document.createElement('a');
+          a.href = entry.url;
+          a.textContent = entry.title;
+
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'day-remove';
+          remove.textContent = '\u00d7';
+          remove.setAttribute('aria-label', `Remove ${entry.title} from ${day}`);
+          remove.addEventListener('click', () => {
+            plan[day]!.splice(index, 1);
+            savePlan(plan);
+            renderDay(dayCard);
+          });
+
+          li.append(a, remove);
+          list.appendChild(li);
+        });
+      }
+
+      dayCards.forEach((dayCard) => {
+        renderDay(dayCard);
+        const select = dayCard.querySelector<HTMLSelectElement>('[data-day-select]');
+        select?.addEventListener('change', () => {
+          const slug = select.value;
+          if (!slug) return;
+          const day = dayCard.dataset.day!;
+          (plan[day] ??= []).push(slug);
+          savePlan(plan);
+          renderDay(dayCard);
+          select.value = '';
+        });
+      });
+
+      // --- Toast (same pattern as the shopping list page) ---
+      const toast = document.getElementById('toast') as HTMLElement | null;
+      const toastMessage = document.getElementById('toastMessage');
+      const toastAction = document.getElementById('toastAction');
+      let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+      function showToast(message: string, actionLabel?: string, onAction?: () => void) {
+        if (!toast || !toastMessage || !toastAction) return;
+        toastMessage.textContent = message;
+        if (actionLabel && onAction) {
+          toastAction.textContent = actionLabel;
+          toastAction.hidden = false;
+          toastAction.onclick = () => { onAction(); hideToast(); };
+        } else {
+          toastAction.hidden = true;
+          toastAction.onclick = null;
+        }
+        toast.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 6000);
+      }
+
+      function hideToast() {
+        if (toast) toast.hidden = true;
+        clearTimeout(toastTimer);
+      }
+
+      // --- Add week to shopping list ---
+      document.getElementById('planToListBtn')?.addEventListener('click', () => {
+        const slugs = Array.from(new Set(Object.values(plan).flat()));
+        if (slugs.length === 0) {
+          showToast('Nothing planned yet — add some recipes first');
+          return;
+        }
+
+        const missing = slugs.filter((slug) => !shoppingList.isRecipeInList(slug));
+        missing.forEach((slug) => {
+          const entry = directory[slug];
+          if (entry) shoppingList.addRecipe(slug, entry.title, entry.ingredients);
+        });
+
+        const added = missing.length;
+        const already = slugs.length - added;
+        showToast(
+          added === 0
+            ? `All ${slugs.length} planned recipes are already on your list`
+            : `Added ${added} recipe${added !== 1 ? 's' : ''} to your shopping list${already ? ` (${already} already on it)` : ''}`
+        );
+      });
+
+      // --- Clear week (with undo) ---
+      document.getElementById('clearPlanBtn')?.addEventListener('click', () => {
+        const previous = JSON.parse(JSON.stringify(plan));
+        Object.keys(plan).forEach((key) => delete plan[key]);
+        savePlan(plan);
+        dayCards.forEach(renderDay);
+        showToast('Week cleared', 'Undo', () => {
+          Object.assign(plan, previous);
+          savePlan(plan);
+          dayCards.forEach(renderDay);
+        });
+      });
+    </script>
+  </Fragment>
+</Layout>
+
+<style>
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .header-top h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .header-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .planner-hint {
+    color: var(--muted);
+    margin-bottom: 2rem;
+  }
+
+  .planner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 1rem;
+  }
+
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .day-card h2 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .day-recipes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-height: 2rem;
+    flex: 1;
+  }
+
+  .day-recipe {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .day-recipe a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .day-recipe a:hover {
+    color: var(--accent-2);
+  }
+
+  .day-remove {
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+  }
+
+  .day-remove:hover {
+    background: var(--border);
+  }
+
+  .day-add {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .day-add-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .day-add select {
+    padding: 0.5rem;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--input-text);
+    font-size: 0.9rem;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--text);
+    color: var(--bg);
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    z-index: 1500;
+    font-weight: 600;
+  }
+
+  .toast-action {
+    border: 0;
+    background: transparent;
+    color: var(--accent-2);
+    font-weight: 800;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  @media print {
+    .header-actions,
+    .back-button,
+    .day-add,
+    .theme-toggle-container,
+    .toast {
+      display: none !important;
+    }
+  }
+</style>

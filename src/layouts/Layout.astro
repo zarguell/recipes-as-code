@@ -1,4 +1,8 @@
 ---
+import '../styles/tokens.css';
+import Icon from '../components/Icon.astro';
+import { loadCollections } from '../lib/collections';
+
 export interface Props {
 	title: string;
 	description?: string;
@@ -6,6 +10,32 @@ export interface Props {
 }
 
 const { title, description, image } = Astro.props;
+const base = import.meta.env.BASE_URL; // ends with "/" when trailingSlash: 'always'
+const siteName = import.meta.env.PUBLIC_APP_NAME ?? 'Recipe Site';
+const themeColor = import.meta.env.PUBLIC_THEME_COLOR ?? '#E58325';
+
+// Canonical URL: Astro.url.pathname already includes the configured base.
+const canonical = Astro.site
+	? new URL(Astro.url.pathname, Astro.site).href
+	: undefined;
+
+// Absolute OG image (metadata images may be site-relative).
+const ogImage = image
+	? Astro.site && !/^https?:\/\//.test(image)
+		? new URL(image.replace(/^\/+/, ''), Astro.site).href
+		: image
+	: undefined;
+
+const pageTitle = title.includes(siteName) ? title : `${title} · ${siteName}`;
+
+// Shell navigation (audit 07 §3.2)
+const collections = loadCollections();
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
+const isActive = (href: string) => {
+	const target = href.replace(/\/$/, '') || '/';
+	if (target === base.replace(/\/$/, '') || target === '') return currentPath === '/' || currentPath === '';
+	return currentPath.startsWith(target);
+};
 ---
 
 <!DOCTYPE html>
@@ -13,362 +43,660 @@ const { title, description, image } = Astro.props;
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>{title}</title>
+		<title>{pageTitle}</title>
 		{description && <meta name="description" content={description} />}
-		{image && <meta property="og:image" content={image} />}
+		{canonical && <link rel="canonical" href={canonical} />}
 
-		<!-- PWA Manifest -->
-		<link rel="manifest" href="/recipes-as-code/manifest.webmanifest" />
-		<meta name="theme-color" content="#ff6b35" />
+		<!-- Open Graph / Twitter -->
+		<meta property="og:site_name" content={siteName} />
+		{canonical && <meta property="og:url" content={canonical} />}
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={title} />
+		{description && <meta property="og:description" content={description} />}
+		{ogImage && <meta property="og:image" content={ogImage} />}
+		<meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+		<meta name="twitter:title" content={title} />
+		{description && <meta name="twitter:description" content={description} />}
+		{ogImage && <meta name="twitter:image" content={ogImage} />}
 
-		<!-- PWA Meta Tags -->
-		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-		<meta name="apple-mobile-web-app-title" content="Recipes" />
-		<link rel="apple-touch-icon" href="/recipes-as-code/icons/192x192.png" />
+		<!-- Sitemap -->
+		<link rel="sitemap" href={`${base}sitemap-index.xml`} />
 
-		<!-- Theme toggle component -->
+		<!-- Page-specific head content (JSON-LD, etc.) -->
 		<slot name="head" />
 
+		<!-- PWA Manifest -->
+		<link rel="manifest" href={`${base}manifest.webmanifest`} />
+		<meta name="theme-color" content={themeColor} />
+		<link rel="apple-touch-icon" href={`${base}icons/192x192.png`} />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-title" content={siteName} />
+
+		<!--
+			Theme boot: apply the stored theme BEFORE first paint so dark-mode
+			users never see a light flash (MPA = every navigation).
+		-->
+		<script is:inline>
+			(function () {
+				try {
+					var pref = localStorage.getItem('theme-preference');
+					if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+					var theme =
+						pref === 'system'
+							? window.matchMedia('(prefers-color-scheme: dark)').matches
+								? 'dark'
+								: 'light'
+							: pref;
+					document.documentElement.setAttribute('data-theme', theme);
+					document.documentElement.setAttribute('data-theme-pref', pref);
+				} catch (e) {
+					/* private mode etc. — default light theme applies */
+				}
+			})();
+		</script>
+
 		<style>
-			/* Global theme variables */
-			:root {
-				--bg: #faf9f7;
-				--surface: #ffffff;
-				--text: #2d3436;
-				--muted: #636e72;
-				--border: #dfe6e9;
-				--accent: #ff6b6b;
-				--accent-2: #0984e3;
-				--input-bg: #ffffff;
-				--input-text: #2d3436;
-				--input-border: #dfe6e9;
-				--input-focus: #0984e3;
-			}
-
-			html[data-theme="dark"] {
-				--bg: #1a1f2e;
-				--surface: #232937;
-				--text: #e1e8ed;
-				--muted: #8899a6;
-				--border: #38444d;
-				--accent: #ff6b6b;
-				--accent-2: #1da1f2;
-				--input-bg: #2f3336;
-				--input-text: #e1e8ed;
-				--input-border: #38444d;
-				--input-focus: #1da1f2;
-			}
-
-			/* Global styles */
+			/* ---------- Global base ---------- */
 			* {
 				box-sizing: border-box;
 			}
 
 			body {
-				font-family: system-ui, -apple-system, sans-serif;
+				font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 				margin: 0;
-				padding: 2rem;
 				background: var(--bg);
-				color: var(--text);
+				color: var(--text-1);
 				line-height: 1.6;
-				max-width: 1200px;
-				margin: 0 auto;
 			}
 
-			/* Theme toggle positioning */
-			.theme-toggle-container {
-				position: fixed;
-				top: 1rem;
-				right: 1rem;
-				z-index: 1000;
-			}
-
-			/* Add padding to body to avoid overlap with fixed theme toggle */
-			body {
-				padding-right: 5rem;
-			}
-
-			/* Header controls layout */
-			:global(.page-header) {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				margin-bottom: 2rem;
-				flex-wrap: wrap;
-				gap: 1rem;
-			}
-
-			:global(.header-controls) {
-				display: flex;
-				align-items: center;
-				gap: 1rem;
-			}
-
-			:global(.header-buttons) {
-				display: flex;
-				gap: 1rem;
-			}
-
-			@media (max-width: 768px) {
-				body {
-					padding-right: 0;
-				}
-
-				:global(.page-header) {
-					margin-right: 0;
-				}
-			}
-
-			@media print {
-				.theme-toggle-container {
-					display: none;
-				}
-
-				body {
-					padding-right: 0;
-				}
-			}
-
-			/* Common elements */
 			a {
-				color: var(--accent-2);
+				color: var(--teal);
 				text-decoration: none;
-				transition: color 0.2s ease;
+				transition: color 0.15s ease;
 			}
 
 			a:hover {
-				text-decoration: underline;
-				color: var(--accent-2);
-				filter: brightness(1.2);
+				color: var(--primary);
 			}
 
-			/* Dark mode link adjustments */
-			html[data-theme="dark"] a {
-				color: #5db2ff;
-			}
-
-			html[data-theme="dark"] a:hover {
-				color: #7dc3ff;
-			}
-
-			/* Base typography */
 			h1, h2, h3 {
-				color: var(--text);
+				color: var(--text-1);
 				margin-top: 0;
+				line-height: 1.25;
 			}
 
+			/* ---------- App bar (audit 07 §3.2) ---------- */
+			.app-bar {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: var(--nav-h);
+				z-index: 1200;
+				display: flex;
+				align-items: center;
+				gap: 0.25rem;
+				padding: 0 0.75rem;
+				background: var(--primary);
+				color: #fff;
+				box-shadow: var(--shadow-nav);
+			}
 
-			/* Buttons */
-			:global(.button) {
+			.app-bar .icon-btn {
+				color: #fff;
+			}
+
+			.app-bar .icon-btn:hover {
+				background: rgba(255, 255, 255, 0.14);
+				color: #fff;
+			}
+
+			.brand {
 				display: inline-flex;
 				align-items: center;
-				gap: 0.5rem;
-				background: var(--accent);
-				color: white;
-				padding: 0.75rem 1.5rem;
-				border-radius: 8px;
-				text-decoration: none;
-				font-weight: bold;
+				gap: 0.55rem;
+				color: #fff;
+				font-weight: 800;
+				font-size: 1.1rem;
+				letter-spacing: 0.01em;
+				padding: 0 0.5rem;
+			}
+
+			.brand:hover {
+				color: #fff;
+			}
+
+			.app-bar-spacer {
+				flex: 1;
+			}
+
+			.icon-btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 2.5rem;
+				height: 2.5rem;
 				border: 0;
+				border-radius: 50%;
+				background: transparent;
+				color: inherit;
 				cursor: pointer;
-				transition: background 0.2s;
+				transition: background 0.15s ease;
 			}
 
-			:global(.button:hover) {
-				background: #ee5a52;
+			.icon-btn:hover {
+				background: var(--surface-2);
 			}
 
-			:global(.button.secondary) {
-				background: var(--accent-2);
+			.list-badge {
+				position: absolute;
+				top: 4px;
+				right: 2px;
+				min-width: 16px;
+				height: 16px;
+				padding: 0 4px;
+				border-radius: 999px;
+				background: var(--secondary);
+				color: #fff;
+				font-size: 0.65rem;
+				font-weight: 800;
+				line-height: 16px;
+				text-align: center;
 			}
 
-			:global(.button.secondary:hover) {
-				background: #0770c9;
+			/* ---------- Shell ---------- */
+			.shell {
+				display: flex;
+				padding-top: var(--nav-h);
+				min-height: 100vh;
 			}
 
-			/* Grid layouts */
+			.sidebar {
+				position: fixed;
+				top: var(--nav-h);
+				bottom: 0;
+				left: 0;
+				width: var(--sidebar-w);
+				background: var(--surface);
+				border-right: 1px solid var(--border);
+				padding: 0.75rem 0.6rem;
+				overflow-y: auto;
+				display: flex;
+				flex-direction: column;
+				gap: 0.25rem;
+				z-index: 1100;
+				transform: translateX(0);
+				transition: transform 0.2s ease;
+			}
+
+			body.sidebar-collapsed .sidebar {
+				transform: translateX(calc(-1 * var(--sidebar-w)));
+			}
+
+			.sidebar a.nav-item {
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				padding: 0.6rem 0.85rem;
+				border-radius: var(--radius);
+				color: var(--text-1);
+				font-weight: 600;
+				font-size: 0.95rem;
+			}
+
+			.sidebar a.nav-item:hover {
+				background: var(--surface-2);
+				color: var(--text-1);
+			}
+
+			.sidebar a.nav-item.active {
+				background: var(--primary-soft);
+				color: var(--primary);
+			}
+
+			.sidebar .nav-icon {
+				color: var(--text-2);
+				display: inline-flex;
+			}
+
+			.sidebar a.nav-item.active .nav-icon {
+				color: var(--primary);
+			}
+
+			.sidebar-section {
+				margin-top: 1rem;
+				padding: 0.4rem 0.85rem;
+				font-size: 0.72rem;
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				color: var(--text-2);
+			}
+
+			.sidebar-footer {
+				margin-top: auto;
+				padding: 0.75rem 0.85rem 0.25rem;
+				border-top: 1px solid var(--border);
+				font-size: 0.8rem;
+				color: var(--text-2);
+			}
+
+			.sidebar-footer a {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				color: var(--text-2);
+			}
+
+			.sidebar-footer a:hover {
+				color: var(--teal);
+			}
+
+			.backdrop {
+				position: fixed;
+				inset: 0;
+				top: var(--nav-h);
+				background: rgba(0, 0, 0, 0.4);
+				z-index: 1050;
+				opacity: 0;
+				pointer-events: none;
+				transition: opacity 0.2s ease;
+			}
+
+			.content {
+				flex: 1;
+				min-width: 0;
+				margin-left: var(--sidebar-w);
+				padding: 1.75rem 2rem 4rem;
+				max-width: calc(1200px + var(--sidebar-w));
+			}
+
+			/* Collapsed sidebar state (desktop) */
+			@media (min-width: 900px) {
+				body.sidebar-collapsed .content {
+					margin-left: 0;
+				}
+			}
+
+			/* Mobile: sidebar becomes a drawer */
+			@media (max-width: 899px) {
+				.sidebar {
+					transform: translateX(calc(-1 * var(--sidebar-w)));
+					box-shadow: var(--shadow-card-hover);
+				}
+
+				body.sidebar-open .sidebar {
+					transform: translateX(0);
+				}
+
+				body.sidebar-open .backdrop {
+					opacity: 1;
+					pointer-events: auto;
+				}
+
+				.content {
+					margin-left: 0;
+					padding: 1.25rem 1rem calc(4.5rem + env(safe-area-inset-bottom, 0px));
+				}
+
+				.sidebar-toggle {
+					display: inline-flex !important;
+				}
+			}
+
+			/* ---------- Bottom tab bar (mobile) ---------- */
+			.bottom-nav {
+				display: none;
+			}
+
+			@media (max-width: 899px) {
+				.bottom-nav {
+					position: fixed;
+					left: 0;
+					right: 0;
+					bottom: 0;
+					z-index: 1100;
+					display: flex;
+					background: var(--surface);
+					border-top: 1px solid var(--border);
+					padding-bottom: env(safe-area-inset-bottom, 0px);
+				}
+
+				.bottom-nav a {
+					flex: 1;
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					gap: 2px;
+					padding: 0.45rem 0 0.4rem;
+					color: var(--text-2);
+					font-size: 0.68rem;
+					font-weight: 700;
+				}
+
+				.bottom-nav a.active {
+					color: var(--primary);
+				}
+			}
+
+			/* ---------- Shared primitives ---------- */
+			.button {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.45rem;
+				background: var(--surface);
+				color: var(--text-1);
+				border: 1px solid var(--border);
+				padding: 0.5rem 1rem;
+				border-radius: var(--radius);
+				font-weight: 700;
+				font-size: 0.92rem;
+				cursor: pointer;
+				transition: border-color 0.15s ease, background 0.15s ease;
+			}
+
+			.button:hover {
+				border-color: var(--primary);
+				color: var(--text-1);
+			}
+
+			.button.primary {
+				background: var(--primary);
+				border-color: var(--primary);
+				color: #fff;
+			}
+
+			.button.primary:hover {
+				background: var(--primary-darken);
+				border-color: var(--primary-darken);
+				color: #fff;
+			}
+
+			.button.secondary {
+				background: var(--surface);
+				color: var(--text-1);
+			}
+
+			/* ---------- Recipe grid views ---------- */
 			:global(.recipe-grid) {
 				display: grid;
-				gap: 2rem;
+				gap: 1.5rem;
 			}
 
-			/* Default grid - responsive 3-column on desktop */
-			:global(.recipe-grid.view-grid) {
-				grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
-			}
-
-			/* Wide screens - 4+ columns */
-			@media (min-width: 1400px) {
-				:global(.recipe-grid.view-grid) {
-					grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
-				}
-			}
-
-			/* Tablet - 2 columns */
-			@media (max-width: 1024px) {
-				:global(.recipe-grid.view-grid) {
-					grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-				}
-			}
-
-			/* Compact view - more columns, smaller cards */
+			:global(.recipe-grid.view-grid),
 			:global(.recipe-grid.view-compact) {
-				grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+				grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
 			}
 
-			/* List view - single column */
 			:global(.recipe-grid.view-list) {
 				grid-template-columns: 1fr;
-				gap: 1rem !important;
+				gap: 1rem;
 			}
 
-			/* Mobile - 1 column */
 			@media (max-width: 640px) {
-				:global(.recipe-grid) {
-					gap: 1.5rem;
-				}
-				:global(.recipe-grid.view-grid) {
+				:global(.recipe-grid.view-grid),
+				:global(.recipe-grid.view-compact) {
 					grid-template-columns: 1fr;
 				}
-				:global(.recipe-grid.view-compact) {
-					grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
-				}
 			}
 
-			/* Responsive */
-			@media (max-width: 768px) {
-				body {
-					padding: 1rem;
+			/* List view: horizontal card */
+			:global(.view-list .recipe-card-wrap) {
+				display: flex;
+			}
+
+			:global(.view-list .recipe-card) {
+				display: flex;
+				align-items: center;
+				color: inherit;
+			}
+
+			:global(.view-list .recipe-image) {
+				width: 110px;
+				height: 110px !important;
+				flex-shrink: 0;
+			}
+
+			:global(.view-list .recipe-info) {
+				flex: 1;
+				padding: 1rem;
+			}
+
+			:global(.view-list .recipe-card-footer) {
+				display: none;
+			}
+
+			:global(.view-compact .recipe-card-wrap .description) {
+				display: none;
+			}
+
+			/* ---------- Typography helpers ---------- */
+			.section-label {
+				font-size: 0.8rem;
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: 0.07em;
+				color: var(--text-2);
+				margin: 0 0 0.75rem;
+			}
+
+			@media print {
+				.app-bar,
+				.sidebar,
+				.bottom-nav,
+				.backdrop,
+				.theme-toggle-container,
+				.skip-link {
+					display: none !important;
 				}
 
-				.theme-toggle-container {
-					position: static;
-					margin-bottom: 1rem;
-					display: flex;
-					justify-content: flex-end;
+				.shell {
+					padding-top: 0;
+				}
+
+				.content {
+					margin-left: 0 !important;
+					padding: 0 !important;
+					max-width: none;
+				}
+
+				body {
+					background: white;
+					color: black;
 				}
 			}
 		</style>
 	</head>
 	<body>
-		<div class="theme-toggle-container">
-			<slot name="theme-toggle" />
+		<a class="skip-link" href="#main">Skip to content</a>
+
+		<header class="app-bar">
+			<button type="button" class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation" aria-expanded="false">
+				<Icon name="menu" size={22} />
+			</button>
+
+			<a class="brand" href={base}>
+				<Icon name="recipes" size={24} />
+				<span class="brand-name">{siteName}</span>
+			</a>
+
+			<div class="app-bar-spacer"></div>
+
+			<a class="icon-btn" href={`${base}#searchBox`} aria-label="Search recipes">
+				<Icon name="search" size={21} />
+			</a>
+
+			<a class="icon-btn list-quicklink" href={`${base}shopping-list/`} aria-label="Shopping list" style="position: relative;">
+				<Icon name="cart" size={21} />
+				<span class="list-badge" id="listCountBadge" hidden>0</span>
+			</a>
+
+			<button type="button" class="icon-btn" id="themeToggle" aria-label="Change theme">
+				<Icon name="moon" size={21} />
+			</button>
+		</header>
+
+		<div class="shell">
+			<aside class="sidebar" id="sidebar">
+				<nav aria-label="Primary">
+					<a class={`nav-item ${isActive(base) ? 'active' : ''}`} href={base}>
+						<span class="nav-icon"><Icon name="recipes" size={20} /></span>
+						Recipes
+					</a>
+					<a class={`nav-item ${isActive(`${base}planner`) ? 'active' : ''}`} href={`${base}planner/`}>
+						<span class="nav-icon"><Icon name="planner" size={20} /></span>
+						Planner
+					</a>
+					<a class={`nav-item ${isActive(`${base}shopping-list`) ? 'active' : ''}`} href={`${base}shopping-list/`}>
+						<span class="nav-icon"><Icon name="cart" size={20} /></span>
+						Shopping List
+					</a>
+					<a class={`nav-item ${isActive(`${base}tags`) ? 'active' : ''}`} href={`${base}tags/`}>
+						<span class="nav-icon"><Icon name="tag" size={20} /></span>
+						Tags
+					</a>
+
+					{collections.length > 0 && (
+						<div>
+							<div class="sidebar-section">Collections</div>
+							{collections.map((collection) => (
+								<a
+									class={`nav-item ${isActive(`${base}collections/${collection.slug}`) ? 'active' : ''}`}
+									href={`${base}collections/${collection.slug}/`}
+								>
+									<span class="nav-icon"><Icon name="cookbook" size={20} /></span>
+									{collection.name}
+								</a>
+							))}
+						</div>
+					)}
+				</nav>
+
+				<div class="sidebar-footer">
+					<a href={`${base}rss.xml`}>
+						<Icon name="rss" size={16} />
+						RSS Feed
+					</a>
+					<div style="margin-top: 0.35rem;">No cookies · No tracking</div>
+				</div>
+			</aside>
+
+			<div class="backdrop" id="sidebarBackdrop"></div>
+
+			<main id="main" class="content">
+				<slot />
+			</main>
 		</div>
 
-		<main>
-			<slot />
-		</main>
+		<nav class="bottom-nav" aria-label="Mobile navigation">
+			<a class={isActive(base) ? 'active' : ''} href={base}>
+				<Icon name="home" size={22} />
+				Recipes
+			</a>
+			<a class={isActive(`${base}planner`) ? 'active' : ''} href={`${base}planner/`}>
+				<Icon name="planner" size={22} />
+				Planner
+			</a>
+			<a class={isActive(`${base}shopping-list`) ? 'active' : ''} href={`${base}shopping-list/`}>
+				<Icon name="cart" size={22} />
+				List
+			</a>
+		</nav>
 
-		<style>
-			/* List view card styling */
-			:global(.view-list .recipe-card) {
-				display: flex !important;
-				align-items: center;
-				text-decoration: none;
-				color: inherit;
-			}
-
-			:global(.view-list .recipe-card .recipe-image) {
-				width: 120px;
-				height: 120px;
-				flex-shrink: 0;
-			}
-
-			:global(.view-list .recipe-card .recipe-info) {
-				flex: 1;
-				padding: 1rem;
-			}
-
-			/* Compact view card styling */
-			:global(.view-compact .recipe-card .recipe-info) {
-				padding: 1rem;
-			}
-
-			:global(.view-compact .recipe-card .description) {
-				display: none;
-			}
-
-			/* Mobile list view adjustments */
-			@media (max-width: 768px) {
-				:global(.view-list .recipe-card) {
-					flex-direction: column;
-					text-align: center;
-				}
-
-				:global(.view-list .recipe-card .recipe-image) {
-					width: 100%;
-					height: 200px;
-				}
-			}
-		</style>
-
-		<script is:inline>
-			// Set correct placeholder for images that fail to load
-			document.addEventListener('error', (e) => {
-				if (e.target.tagName === 'IMG' && e.target.src.includes('No Image')) {
-					e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='var(--surface)' width='400' height='300'/%3E%3Ctext fill='var(--muted)' font-family='system-ui,sans-serif' font-size='18' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3E🍳 No Image%3C/text%3E%3C/svg%3E";
-					e.target.setAttribute('data-placeholder', 'true');
-				}
-			}, true);
-
-			// Initialize Shopping List globally
-			class ShoppingList {
-				constructor() {
-					this.storageKey = 'recipe-shopping-list';
-					this.list = this.loadList();
-				}
-
-				loadList() {
-					const stored = localStorage.getItem(this.storageKey);
-					return stored ? JSON.parse(stored) : { recipes: [] };
-				}
-
-				saveList() {
-					localStorage.setItem(this.storageKey, JSON.stringify(this.list));
-				}
-
-				addRecipe(recipeSlug, recipeTitle, ingredients) {
-					// Check if recipe already exists
-					const existingIndex = this.list.recipes.findIndex(r => r.slug === recipeSlug);
-
-					if (existingIndex >= 0) {
-						// Remove recipe if it already exists
-						this.list.recipes.splice(existingIndex, 1);
-					} else {
-						// Add new recipe
-						this.list.recipes.push({
-							slug: recipeSlug,
-							title: recipeTitle,
-							ingredients: ingredients,
-							addedAt: new Date().toISOString()
-						});
-					}
-
-					this.saveList();
-					return existingIndex >= 0; // returns true if recipe was removed
-				}
-
-				removeRecipe(recipeSlug) {
-					this.list.recipes = this.list.recipes.filter(r => r.slug !== recipeSlug);
-					this.saveList();
-				}
-
-				clearAll() {
-					this.list = { recipes: [] };
-					this.saveList();
-				}
-
-				isRecipeInList(recipeSlug) {
-					return this.list.recipes.some(r => r.slug === recipeSlug);
-				}
-			}
-
-			// Create global shopping list instance
-			window.shoppingList = new ShoppingList();
-		</script>
-
-		
 		<slot name="scripts" />
+
+		<script>
+			// --- Sidebar (persistent on desktop, drawer on mobile) ---
+			const sidebarToggle = document.getElementById('sidebarToggle');
+			const backdrop = document.getElementById('sidebarBackdrop');
+			const mq = window.matchMedia('(min-width: 900px)');
+
+			function applySidebar() {
+				try {
+					if (mq.matches) {
+						const collapsed = localStorage.getItem('sidebar-collapsed') === '1';
+						document.body.classList.toggle('sidebar-collapsed', collapsed);
+						sidebarToggle?.setAttribute('aria-expanded', String(!collapsed));
+					} else {
+						document.body.classList.remove('sidebar-collapsed', 'sidebar-open');
+					}
+				} catch {
+					/* ignore */
+				}
+			}
+
+			sidebarToggle?.addEventListener('click', () => {
+				if (mq.matches) {
+					const collapsed = !document.body.classList.contains('sidebar-collapsed');
+					document.body.classList.toggle('sidebar-collapsed', collapsed);
+					try {
+						localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0');
+					} catch { /* ignore */ }
+					sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+				} else {
+					document.body.classList.toggle('sidebar-open');
+					sidebarToggle.setAttribute('aria-expanded', String(document.body.classList.contains('sidebar-open')));
+				}
+			});
+
+			backdrop?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+			mq.addEventListener('change', applySidebar);
+			applySidebar();
+
+			// --- Theme: cycle system -> light -> dark ---
+			const themeToggle = document.getElementById('themeToggle');
+			const ORDER = ['system', 'light', 'dark'];
+
+			function renderThemeToggle() {
+				if (!themeToggle) return;
+				const pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+				const effective = document.documentElement.getAttribute('data-theme') || 'light';
+				const icon = themeToggle.querySelector('path');
+				if (icon) {
+					const target = pref === 'system' ? (effective === 'dark' ? 'moon' : 'sun') : pref === 'dark' ? 'moon' : 'sun';
+					// moon/sun path data (mirrors Icon.astro)
+					icon.setAttribute('d', target === 'moon'
+						? 'M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.64 6.35,17.66C9.37,20.67 14.19,20.78 17.33,17.97Z'
+						: 'M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z');
+				}
+				themeToggle.setAttribute('aria-label', `Theme: ${pref} (click to change)`);
+				themeToggle.title = `Theme: ${pref}`;
+			}
+
+			themeToggle?.addEventListener('click', () => {
+				const current = document.documentElement.getAttribute('data-theme-pref') || 'system';
+				const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
+				const effective = next === 'system'
+					? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+					: next;
+				document.documentElement.setAttribute('data-theme', effective);
+				document.documentElement.setAttribute('data-theme-pref', next);
+				try {
+					localStorage.setItem('theme-preference', next);
+				} catch { /* ignore */ }
+				renderThemeToggle();
+			});
+
+			renderThemeToggle();
+
+			// --- Shopping list count badge ---
+			function updateListBadge() {
+				const badge = document.getElementById('listCountBadge');
+				if (!badge) return;
+				try {
+					const raw = localStorage.getItem('recipe-shopping-list');
+					const data = raw ? JSON.parse(raw) : null;
+					const count = data && Array.isArray(data.recipes) ? data.recipes.length : 0;
+					badge.textContent = String(count);
+					badge.hidden = count === 0;
+				} catch {
+					badge.hidden = true;
+				}
+			}
+
+			updateListBadge();
+			window.addEventListener('pageshow', updateListBadge);
+		</script>
 	</body>
 </html>

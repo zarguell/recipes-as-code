@@ -1,54 +1,31 @@
 ---
+import { formatQtyWithUnit } from '../lib/quantities';
+
 const { ingredients } = Astro.props;
 
-// Helper functions for fraction conversion
-function gcd(a, b) {
-  a = Math.abs(a); b = Math.abs(b);
-  while (b) [a, b] = [b, a % b];
-  return a || 1;
-}
-
-function formatFraction(num, den) {
-  if (den === 1) return String(num);
-  if (num > den) {
-    const whole = Math.floor(num / den);
-    const remainder = num % den;
-    return remainder === 0 ? String(whole) : `${whole} ${remainder}/${den}`;
-  }
-  return `${num}/${den}`;
-}
-
-// Normalize to a numeric base for scaling + store fraction parts when available
-function getBaseQty(ing: any) {
+// Normalize to a numeric base for scaling.
+// Display formatting is handled by the shared formatQty() in src/lib/quantities.ts
+// so the ingredient list and the step chips can never disagree.
+function getBaseQty(ing: any): { base: number | null; kind: string } {
   const v = ing?.quantity?.value;
 
   // Handle direct fraction syntax like {1/2%cup}
   if (v && typeof v === "object" && v.type === "fraction") {
     const num = v.num;
     const den = v.den;
-    if (typeof num === "number" && typeof den === "number") {
-      const simplifiedNum = num / gcd(num, den);
-      const simplifiedDen = den / gcd(num, den);
-      return {
-        base: num / den,
-        kind: "fraction",
-        display: formatFraction(simplifiedNum, simplifiedDen)
-      };
+    if (typeof num === "number" && typeof den === "number" && den !== 0) {
+      return { base: num / den, kind: "fraction" };
     }
   }
 
   // Handle mixed number syntax like {1%cup}
   if (v && typeof v === "object" && v.type === "number" && typeof v.value === "number") {
-    return {
-      base: v.value,
-      kind: "number",
-      display: String(v.value)
-    };
+    return { base: v.value, kind: "number" };
   }
 
   // Handle simple decimal
   if (typeof v === "number") {
-    return { base: v, kind: "decimal", display: String(v) };
+    return { base: v, kind: "decimal" };
   }
 
   // Handle quantity.value.value case (nested structure)
@@ -56,27 +33,17 @@ function getBaseQty(ing: any) {
   if (nested && typeof nested === "object" && nested.type === "fraction") {
     const num = nested.num;
     const den = nested.den;
-    if (typeof num === "number" && typeof den === "number") {
-      const simplifiedNum = num / gcd(num, den);
-      const simplifiedDen = den / gcd(num, den);
-      return {
-        base: num / den,
-        kind: "fraction",
-        display: formatFraction(simplifiedNum, simplifiedDen)
-      };
+    if (typeof num === "number" && typeof den === "number" && den !== 0) {
+      return { base: num / den, kind: "fraction" };
     }
   }
 
   if (nested && typeof nested === "number") {
-    return {
-      base: nested,
-      kind: "decimal",
-      display: String(nested)
-    };
+    return { base: nested, kind: "decimal" };
   }
 
   // Some recipes may not have numeric quantity
-  return { base: null, kind: "", display: "" };
+  return { base: null, kind: "" };
 }
 ---
 
@@ -97,7 +64,7 @@ function getBaseQty(ing: any) {
             data-base={q.base !== null ? String(q.base) : ""}
             data-unit={unit}
           >
-            {q.display ? `${q.display}${unit ? ` ${unit}` : ""}` : ""}
+            {q.base !== null ? formatQtyWithUnit(q.base, unit) : ""}
           </span>
         </label>
       </li>

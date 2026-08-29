@@ -7,6 +7,8 @@ on:
     paths:
       - 'recipes/**'
       - 'src/**'
+      - 'public/**'
+      - 'collections.yml'
       - 'astro.config.mjs'
       - 'package.json'
       - 'package-lock.json'
@@ -14,6 +16,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -39,7 +42,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Test
+        run: npm test
 
       - name: Build site
         run: npm run build
@@ -61,4 +67,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4

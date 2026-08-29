@@ -1,0 +1,71 @@
+---
+import RecipeCard from "../../components/RecipeCard.astro";
+import ViewControls from "../../components/ViewControls.astro";
+import Layout from "../../layouts/Layout.astro";
+import { getAllRecipes } from "../../lib/recipes";
+import { loadCollections, recipeMatches } from "../../lib/collections";
+
+export async function getStaticPaths() {
+  const collections = loadCollections();
+  return collections.map((collection) => ({
+    params: { slug: collection.slug },
+    props: { collection },
+  }));
+}
+
+const { collection } = Astro.props;
+const recipes = getAllRecipes().filter((r) => recipeMatches(r.parsed.metadata, collection));
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout title={collection.name} description={collection.description ?? `Recipe collection: ${collection.name}`}>
+
+  <h1>{collection.name}</h1>
+  {collection.description && <p class="collection-description">{collection.description}</p>}
+  <p class="collection-count">{recipes.length} recipe{recipes.length !== 1 ? "s" : ""}</p>
+
+  <ViewControls />
+
+  {recipes.length > 0 ? (
+    <div class="recipe-grid view-grid" id="recipeGrid">
+      {recipes.map((recipe) => <RecipeCard recipe={recipe} />)}
+    </div>
+  ) : (
+    <div class="empty-collection">
+      <p>No recipes match this collection yet.</p>
+      <p>Add one of its tags to a recipe's frontmatter and push.</p>
+    </div>
+  )}
+</Layout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    color: var(--muted);
+  }
+
+  h1 {
+    margin-bottom: 0.25rem;
+  }
+
+  .collection-description {
+    color: var(--muted);
+    margin: 0.25rem 0 0;
+  }
+
+  .collection-count {
+    color: var(--muted);
+    margin: 0.5rem 0 1.5rem;
+  }
+
+  .empty-collection {
+    text-align: center;
+    color: var(--muted);
+    padding: 3rem 1rem;
+  }
+
+  .empty-collection p {
+    margin: 0.25rem 0;
+  }
+</style>
