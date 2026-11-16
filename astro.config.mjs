@@ -1,5 +1,5 @@
 import { defineConfig } from 'astro/config';
-import VitePWA from '@vite-pwa/astro';
+import { AstroPWAIntegration as VitePWA } from '@vite-pwa/astro';
 import sitemap from '@astrojs/sitemap';
 
 // This site deploys to GitHub Pages as a project site:
@@ -27,7 +27,7 @@ export default defineConfig({
     sitemap(),
     VitePWA({
       registerType: 'autoUpdate',
-      workbox: {
+      generateSW: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webmanifest}'],
         // Offline reads: visited recipe pages + images are cached at runtime.
         runtimeCaching: [
