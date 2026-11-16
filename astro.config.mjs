@@ -1,5 +1,5 @@
 import { defineConfig } from 'astro/config';
-import VitePWA from '@vite-pwa/astro';
+import { AstroPWAIntegration as VitePWA } from '@vite-pwa/astro';
 import sitemap from '@astrojs/sitemap';
 
 // This site deploys to GitHub Pages as a project site:
