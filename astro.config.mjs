@@ -27,7 +27,7 @@ export default defineConfig({
     sitemap(),
     VitePWA({
       registerType: 'autoUpdate',
-      workbox: {
+      generateSW: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webmanifest}'],
         // Offline reads: visited recipe pages + images are cached at runtime.
         runtimeCaching: [
